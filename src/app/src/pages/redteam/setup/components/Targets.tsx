@@ -36,6 +36,7 @@ import {
   useRedTeamConfig,
 } from '../hooks/useRedTeamConfig';
 import type { ProviderOptions } from '../types';
+import LocalProviderSelector from './LocalProviderSelector';
 
 interface TargetsProps {
   onNext: () => void;
@@ -47,9 +48,11 @@ const predefinedTargets = [
   { value: 'http', label: 'HTTP/HTTPS Endpoint' },
   { value: 'websocket', label: 'WebSocket Endpoint' },
   { value: 'browser', label: 'Web Browser Automation' },
+  { value: 'javascript', label: 'Custom JavaScript Provider' },
+  { value: 'python', label: 'Custom Python Provider' },
   { value: 'openai:gpt-4o-mini', label: 'OpenAI GPT-4o Mini' },
   { value: 'openai:gpt-4o', label: 'OpenAI GPT-4o' },
-  { value: 'anthropic:claude-3-5-sonnet-20240620', label: 'Anthropic Claude 3.5 Sonnet' },
+  { value: 'anthropic:claude-3-5-sonnet-20241022', label: 'Anthropic Claude 3.5 Sonnet' },
   { value: 'anthropic:claude-3-opus-20240307', label: 'Anthropic Claude 3 Opus' },
   { value: 'vertex:gemini-pro', label: 'Google Vertex AI Gemini Pro' },
 ];
@@ -118,66 +121,25 @@ export default function Targets({ onNext, setupModalOpen }: TargetsProps) {
   }, [selectedTarget, updateConfig]);
 
   const handleTargetChange = (event: SelectChangeEvent<string>) => {
-    const value = event.target.value as string;
+    const value = event.target.value;
     const currentLabel = selectedTarget.label;
 
+    let newTarget: ProviderOptions = {
+      id: value,
+      config: {},
+      label: currentLabel,
+    };
+
     if (value === 'javascript' || value === 'python') {
-      const filePath =
-        value === 'javascript'
-          ? 'file://path/to/custom_provider.js'
-          : 'file://path/to/custom_provider.py';
-      setSelectedTarget({
-        id: filePath,
-        config: {},
-        label: currentLabel,
-      });
-      updateConfig('prompts', [PROMPT_EXAMPLE]);
-      updateConfig('purpose', DEFAULT_PURPOSE);
+      newTarget.id = '';
+      newTarget.type = value;
     } else if (value === 'http') {
-      setSelectedTarget({
-        ...DEFAULT_HTTP_TARGET,
-        label: currentLabel,
-      });
-      updateConfig('prompts', ['{{prompt}}']);
-      updateConfig('purpose', '');
-    } else if (value === 'websocket') {
-      setSelectedTarget({
-        id: 'websocket',
-        label: currentLabel,
-        config: {
-          type: 'websocket',
-          url: 'wss://example.com/ws',
-          messageTemplate: '{"message": "{{prompt}}"}',
-          responseParser: 'response.message',
-          timeoutMs: 30000,
-        },
-      });
-      updateConfig('prompts', ['{{prompt}}']);
-      updateConfig('purpose', '');
-    } else if (value === 'browser') {
-      setSelectedTarget({
-        id: 'browser',
-        label: currentLabel,
-        config: {
-          steps: [
-            {
-              action: 'navigate',
-              args: { url: 'https://example.com' },
-            },
-          ],
-        },
-      });
-      updateConfig('prompts', [PROMPT_EXAMPLE]);
-      updateConfig('purpose', DEFAULT_PURPOSE);
-    } else {
-      setSelectedTarget({
-        id: value,
-        config: {},
-        label: currentLabel,
-      });
-      updateConfig('prompts', [PROMPT_EXAMPLE]);
-      updateConfig('purpose', DEFAULT_PURPOSE);
+      newTarget = { ...DEFAULT_HTTP_TARGET, label: currentLabel };
     }
+
+    setSelectedTarget(newTarget);
+    updateConfig('prompts', [PROMPT_EXAMPLE]);
+    updateConfig('purpose', DEFAULT_PURPOSE);
   };
 
   useEffect(() => {
@@ -378,7 +340,7 @@ export default function Targets({ onNext, setupModalOpen }: TargetsProps) {
           <InputLabel id="predefined-target-label">Target Type</InputLabel>
           <Select
             labelId="predefined-target-label"
-            value={selectedTarget.id}
+            value={selectedTarget.id || selectedTarget.type || ''}
             onChange={handleTargetChange}
             label="Target Type"
           >
@@ -389,45 +351,15 @@ export default function Targets({ onNext, setupModalOpen }: TargetsProps) {
             ))}
           </Select>
         </FormControl>
-        {(selectedTarget.id.startsWith('javascript') || selectedTarget.id.startsWith('python')) && (
-          <TextField
-            fullWidth
-            label="Custom Target"
+
+        {(selectedTarget.type === 'javascript' || selectedTarget.type === 'python') && (
+          <LocalProviderSelector
+            type={selectedTarget.type}
             value={selectedTarget.id}
-            onChange={(e) => updateCustomTarget('id', e.target.value)}
-            margin="normal"
+            onChange={(path) => updateCustomTarget('id', path)}
           />
         )}
-        {selectedTarget.id.startsWith('file://') && (
-          <>
-            {selectedTarget.id.endsWith('.js') && (
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                Learn how to set up a custom JavaScript provider{' '}
-                <Link
-                  href="https://www.promptfoo.dev/docs/providers/custom-api/"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  here
-                </Link>
-                .
-              </Typography>
-            )}
-            {selectedTarget.id.endsWith('.py') && (
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                Learn how to set up a custom Python provider{' '}
-                <Link
-                  href="https://www.promptfoo.dev/docs/providers/python/"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  here
-                </Link>
-                .
-              </Typography>
-            )}
-          </>
-        )}
+
         {selectedTarget.id.startsWith('http') && (
           <Box mt={2}>
             <Typography variant="h6" gutterBottom>
