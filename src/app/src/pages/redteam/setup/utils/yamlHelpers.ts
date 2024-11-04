@@ -1,5 +1,5 @@
 import type { RedteamPluginObject } from '@promptfoo/redteam/types';
-import yaml from 'js-yaml';
+import { dump } from 'js-yaml';
 import type { Config, YamlConfig } from '../types';
 
 const orderRedTeam = (redteam: any): any => {
@@ -70,5 +70,36 @@ export const generateOrderedYaml = (config: Config): string => {
   }
 
   const orderedConfig = orderKeys(yamlConfig);
-  return yaml.dump(orderedConfig, { noRefs: true, lineWidth: -1 });
+  return dump(orderedConfig, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
+  });
 };
+
+function sanitizeConfig(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (typeof obj === 'function') {
+    return undefined; // Remove functions
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeConfig).filter(item => item !== undefined);
+  }
+
+  if (typeof obj === 'object') {
+    const sanitized: { [key: string]: any } = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const sanitizedValue = sanitizeConfig(value);
+      if (sanitizedValue !== undefined) {
+        sanitized[key] = sanitizedValue;
+      }
+    }
+    return sanitized;
+  }
+
+  return obj;
+}

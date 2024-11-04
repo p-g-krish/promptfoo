@@ -131,8 +131,13 @@ export default function Targets({ onNext, setupModalOpen }: TargetsProps) {
     };
 
     if (value === 'javascript' || value === 'python') {
-      newTarget.id = '';
-      newTarget.type = value;
+      newTarget = {
+        id: value,
+        config: {
+          path: '',
+        },
+        label: currentLabel,
+      };
     } else if (value === 'http') {
       newTarget = { ...DEFAULT_HTTP_TARGET, label: currentLabel };
     }
@@ -352,11 +357,25 @@ export default function Targets({ onNext, setupModalOpen }: TargetsProps) {
           </Select>
         </FormControl>
 
-        {(selectedTarget.type === 'javascript' || selectedTarget.type === 'python') && (
+        {(selectedTarget.id === 'javascript' || selectedTarget.id === 'python') && (
           <LocalProviderSelector
-            type={selectedTarget.type}
-            value={selectedTarget.id}
-            onChange={(path) => updateCustomTarget('id', path)}
+            type={selectedTarget.id as 'javascript' | 'python'}
+            value={selectedTarget.config.path || ''}
+            onChange={(path) => {
+              setSelectedTarget({
+                ...selectedTarget,
+                config: {
+                  ...selectedTarget.config,
+                  path,
+                },
+              });
+            }}
+            onUpdateTarget={(targetConfig) => {
+              setSelectedTarget((prev) => ({
+                ...prev,
+                ...targetConfig,
+              }));
+            }}
           />
         )}
 

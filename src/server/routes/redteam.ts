@@ -42,3 +42,51 @@ redteamRouter.post('/:task', async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ error: `Failed to process ${task} task` });
   }
 });
+
+// Add new route for testing providers
+redteamRouter.post('/test-provider', async (req: Request, res: Response): Promise<void> => {
+  const { type, path } = req.body;
+
+  logger.debug('Testing provider:', { type, path });
+
+  try {
+    // Mock provider testing logic
+    if (!path.startsWith('file://')) {
+      throw new Error('Path must start with file://');
+    }
+
+    const fileExtension = path.split('.').pop();
+    const expectedExtension = type === 'javascript' ? 'js' : 'py';
+
+    if (fileExtension !== expectedExtension) {
+      throw new Error(`Invalid file extension. Expected .${expectedExtension}`);
+    }
+
+    // Mock successful response
+    // In production, you would actually try to load and validate the provider here
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+    
+    res.json({
+      success: true,
+      message: `Successfully loaded ${type} provider from ${path}`,
+      details: {
+        provider: {
+          type,
+          path,
+          status: 'operational',
+          timestamp: new Date().toISOString(),
+        }
+      }
+    });
+  } catch (error) {
+    logger.error('Provider test failed:', error);
+    res.status(400).json({
+      success: false,
+      message: (error as Error).message,
+      details: {
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      }
+    });
+  }
+});

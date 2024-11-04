@@ -211,7 +211,6 @@ export default function RedTeamSetupPage() {
     return hash ? Number.parseInt(hash, 10) : 0;
   });
 
-  const [yamlPreviewOpen, setYamlPreviewOpen] = useState(false);
   const { hasSeenSetup, markSetupAsSeen } = useSetupState();
   const [setupModalOpen, setSetupModalOpen] = useState(!hasSeenSetup);
   const { config, setFullConfig } = useRedTeamConfig();
@@ -262,10 +261,6 @@ export default function RedTeamSetupPage() {
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     updateHash(newValue);
     setValue(newValue);
-  };
-
-  const toggleYamlPreview = () => {
-    setYamlPreviewOpen(!yamlPreviewOpen);
   };
 
   const closeSetupModal = () => {
@@ -435,37 +430,7 @@ export default function RedTeamSetupPage() {
             <Review />
           </CustomTabPanel>
         </TabContent>
-        <Drawer
-          anchor="right"
-          open={yamlPreviewOpen}
-          onClose={toggleYamlPreview}
-          variant="persistent"
-        >
-          <DrawerHeader>
-            <IconButton onClick={toggleYamlPreview}>
-              <CloseIcon />
-            </IconButton>
-            <Typography variant="h6" sx={{ ml: 2 }}>
-              YAML Preview
-            </Typography>
-          </DrawerHeader>
-          <Box sx={{ height: 'calc(100% - 64px)', overflow: 'auto' }}>
-            <YamlPreview config={config} />
-          </Box>
-        </Drawer>
       </Content>
-      {/*
-      <Zoom in={!yamlPreviewOpen} unmountOnExit>
-        <StyledFab color="primary" onClick={toggleYamlPreview} aria-label="toggle yaml preview">
-          <DescriptionIcon />
-        </StyledFab>
-      </Zoom>
-      <Zoom in={yamlPreviewOpen} unmountOnExit>
-        <StyledFab color="secondary" onClick={toggleYamlPreview} aria-label="close yaml preview">
-          <CloseIcon />
-        </StyledFab>
-      </Zoom>
-      */}
       <Setup open={setupModalOpen} onClose={closeSetupModal} />
       <CrispChat />
       <Dialog

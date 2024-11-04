@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -7,16 +7,34 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Link from '@mui/material/Link';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { callApi } from '@app/utils/api';
 
 interface LocalProviderSelectorProps {
   type: 'javascript' | 'python';
   value: string;
   onChange: (path: string) => void;
+  onUpdateTarget: (targetConfig: { id: string; config: Record<string, any> }) => void;
 }
 
-const LocalProviderSelector = memo(({ type, value, onChange }: LocalProviderSelectorProps) => {
+const LocalProviderSelector = memo(({ type, value, onChange, onUpdateTarget }: LocalProviderSelectorProps) => {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    const config = {
+      id: `file://${value}`,
+      config: {
+        type,
+        path: value,
+      },
+    };
+    onUpdateTarget(config);
+  }, [value, type, onUpdateTarget]);
+
+  const handlePathChange = (newPath: string) => {
+    const cleanPath = newPath.startsWith('file://') ? newPath.slice(7) : newPath;
+    onChange(cleanPath);
+  };
 
   const getDocLink = () => {
     return type === 'javascript'
@@ -25,10 +43,10 @@ const LocalProviderSelector = memo(({ type, value, onChange }: LocalProviderSele
   };
 
   const handleTest = async () => {
-    if (!value.startsWith('file://')) {
+    if (!value) {
       setTestResult({
         success: false,
-        message: 'Path must start with file://',
+        message: 'Please enter a provider path',
       });
       return;
     }
@@ -37,28 +55,30 @@ const LocalProviderSelector = memo(({ type, value, onChange }: LocalProviderSele
     setTestResult(null);
 
     try {
-      // Mock API call - replace with real API call later
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await callApi('/redteam/test-provider', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type,
+          path: value.startsWith('file://') ? value : `file://${value}`,
+        }),
+      });
 
-      // Simulate success/failure based on file extension
-      const hasCorrectExtension =
-        type === 'javascript' ? value.endsWith('.js') : value.endsWith('.py');
-
-      if (hasCorrectExtension) {
-        setTestResult({
-          success: true,
-          message: `Successfully loaded ${type} provider`,
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: `File must end with .${type === 'javascript' ? 'js' : 'py'}`,
-        });
+      if (!response.ok) {
+        throw new Error('Failed to test provider');
       }
+
+      const data = await response.json();
+      setTestResult({
+        success: data.success,
+        message: data.message,
+      });
     } catch (error) {
       setTestResult({
         success: false,
-        message: 'Failed to test provider: ' + (error as Error).message,
+        message: (error as Error).message || 'Failed to test provider',
       });
     } finally {
       setTesting(false);
@@ -72,8 +92,8 @@ const LocalProviderSelector = memo(({ type, value, onChange }: LocalProviderSele
           fullWidth
           label="Provider Path"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={`file://path/to/custom_provider.${type === 'javascript' ? 'js' : 'py'}`}
+          onChange={(e) => handlePathChange(e.target.value)}
+          placeholder={`path/to/custom_provider.${type === 'javascript' ? 'js' : 'py'}`}
           error={testResult?.success === false}
           helperText={testResult?.success === false ? testResult.message : undefined}
         />
@@ -88,8 +108,8 @@ const LocalProviderSelector = memo(({ type, value, onChange }: LocalProviderSele
         </Button>
       </Box>
 
-      {testResult?.success && (
-        <Alert severity="success" sx={{ mt: 2 }}>
+      {testResult && (
+        <Alert severity={testResult.success ? 'success' : 'error'} sx={{ mt: 2 }}>
           {testResult.message}
         </Alert>
       )}
