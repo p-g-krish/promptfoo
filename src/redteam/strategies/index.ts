@@ -3,6 +3,7 @@ import dedent from 'dedent';
 import logger from '../../logger';
 import type { RedteamStrategyObject, TestCase, TestCaseWithPlugin } from '../../types';
 import { addBase64Encoding } from './base64';
+import { addBasicTestCases } from './basic';
 import { addCrescendo } from './crescendo';
 import { addGoatTestCases } from './goat';
 import { addIterativeJailbreaks } from './iterative';
@@ -22,6 +23,15 @@ export interface Strategy {
 }
 
 export const Strategies: Strategy[] = [
+  {
+    key: 'basic',
+    action: async (testCases, injectVar, config = { enabled: true }) => {
+      logger.debug('Adding basic test cases');
+      const newTestCases = await addBasicTestCases(testCases, injectVar, config);
+      logger.debug(`Added ${newTestCases.length} basic test cases`);
+      return newTestCases;
+    },
+  },
   {
     key: 'base64',
     action: async (testCases, injectVar) => {

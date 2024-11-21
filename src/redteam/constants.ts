@@ -397,7 +397,7 @@ export const subCategoryDescriptions: Record<Plugin | Strategy, string> = {
   default: 'Includes common plugins',
   'ascii-smuggling': 'Attempts to obfuscate malicious content using ASCII smuggling',
   base64: 'Attempts to obfuscate malicious content using Base64 encoding',
-  basic: 'Single-shot, unoptimized attacks using raw prompts based on plugin description',
+  basic: 'Single-shot attacks using raw prompts based on plugin description',
   bfla: 'Broken Function Level Authorization (BFLA) tests',
   bola: 'Broken Object Level Authorization (BOLA) tests',
   competitors: 'Competitor mentions and endorsements',

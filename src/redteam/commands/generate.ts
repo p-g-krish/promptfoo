@@ -34,6 +34,22 @@ function getConfigHash(configPath: string): string {
   return createHash('md5').update(`${VERSION}:${content}`).digest('hex');
 }
 
+function addBasicStrategy(
+  strategies: (string | { id: string; config?: Record<string, unknown> })[],
+): (string | { id: string; config?: Record<string, unknown> })[] {
+  const hasBasic = strategies.some(
+    (strategy) =>
+      (typeof strategy === 'string' && strategy === 'basic') ||
+      (typeof strategy === 'object' && strategy.id === 'basic'),
+  );
+
+  if (!hasBasic) {
+    return [{ id: 'basic', config: { enabled: true } }, ...strategies];
+  }
+
+  return strategies;
+}
+
 export async function doGenerateRedteam(options: Partial<RedteamCliGenerateOptions>) {
   setupEnv(options.envFile);
   if (!options.cache) {
@@ -115,11 +131,13 @@ export async function doGenerateRedteam(options: Partial<RedteamCliGenerateOptio
   }
   invariant(plugins && Array.isArray(plugins) && plugins.length > 0, 'No plugins found');
 
-  let strategies: (string | { id: string })[] =
+  let strategies: (string | { id: string; config?: Record<string, unknown> })[] =
     redteamConfig?.strategies ?? DEFAULT_STRATEGIES.map((s) => ({ id: s }));
+
   if (options.strategies) {
     strategies = options.strategies;
   }
+  strategies = addBasicStrategy(strategies);
   const strategyObjs: RedteamStrategyObject[] = strategies.map((s) =>
     typeof s === 'string' ? { id: s } : s,
   );

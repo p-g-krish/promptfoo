@@ -68,6 +68,10 @@ targets:
 redteam:
   {% if purpose is defined -%}
   purpose: {{ purpose | dump }}
+  {% else -%}
+  {% if prompts.length == 0 -%}
+  # purpose: "Describe the intended use case of your application"
+  {% endif -%}
   {% endif %}
   # Default number of inputs to generate for each plugin.
   # The total number of tests will be (numTests * plugins.length * (1 + strategies.length))
