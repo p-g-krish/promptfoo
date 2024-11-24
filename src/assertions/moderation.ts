@@ -1,8 +1,9 @@
 import invariant from 'tiny-invariant';
+import logger from '../logger';
 import { matchesModeration } from '../matchers';
 import { parseChatPrompt } from '../providers/shared';
 import type { AssertionParams, GradingResult } from '../types';
-import logger from '../logger';
+
 export const handleModeration = async ({
   assertion,
   test,

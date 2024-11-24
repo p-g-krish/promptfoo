@@ -102,7 +102,12 @@ export default class GoatProvider implements ApiProvider {
               context.filters,
               targetProvider,
             );
-        const targetResponse = await targetProvider.callApi(targetPrompt, context, options);
+        logger.warn(`targetPrompt: ${targetPrompt}`);
+        const targetResponse = await targetProvider.callApi(
+          (targetPrompt as any)?.[0]?.content,
+          context,
+          options,
+        );
         logger.debug(`GOAT turn ${turn} target response: ${JSON.stringify(targetResponse)}`);
 
         if (targetResponse.sessionId) {

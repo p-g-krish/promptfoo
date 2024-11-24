@@ -330,3 +330,53 @@ tests:
 ```
 
 See the guide on [How to eval OpenAI assistants](/docs/guides/evaluate-openai-assistants/) for more information on how to compare different models, instructions, and more.
+
+## Environment Variable Overrides
+
+The Azure provider supports several environment variables that can override configuration settings. Here are all the supported environment variables and their corresponding config keys:
+
+### API Configuration
+
+| Environment Variable     | Config Key    | Description                                          |
+|-------------------------|---------------|------------------------------------------------------|
+| `AZURE_API_HOST`        | `apiHost`     | API host (e.g., 'your-deployment.openai.azure.com')  |
+| `AZURE_API_BASE_URL`    | `apiBaseUrl`  | Full base URL for API calls                         |
+
+### OpenAI Parameters
+
+| Environment Variable         | Config Key         | Description                                |
+|----------------------------|-------------------|--------------------------------------------|
+| `OPENAI_MAX_TOKENS`        | `max_tokens`      | Maximum tokens to generate (default: 1024)  |
+| `OPENAI_TEMPERATURE`       | `temperature`     | Temperature setting (default: 0)            |
+| `OPENAI_TOP_P`            | `top_p`          | Top P setting (default: 1)                  |
+| `OPENAI_PRESENCE_PENALTY` | `presence_penalty`| Presence penalty (default: 0)               |
+| `OPENAI_FREQUENCY_PENALTY`| `frequency_penalty`| Frequency penalty (default: 0)              |
+| `OPENAI_BEST_OF`         | `best_of`        | Number of completions to generate (default: 1)|
+| `OPENAI_STOP`            | `stop`           | Stop sequences (JSON array as string)        |
+
+### Priority Order
+
+When determining values, the provider follows this priority order (highest to lowest):
+
+1. Direct configuration in the provider config object
+2. Environment variables
+3. Default values
+
+For example, to set the API host:
+
+```bash
+# Option 1: Environment variable
+export AZURE_API_HOST=your-deployment.openai.azure.com
+
+# Option 2: Configuration
+providers:
+  - id: azure:chat:deploymentNameHere
+    config:
+      apiHost: 'your-deployment.openai.azure.com'
+```
+
+The configuration in the YAML file will take precedence over the environment variable.
+
+:::note Legacy Support
+For backward compatibility, environment variables prefixed with `AZURE_OPENAI_` (e.g., `AZURE_OPENAI_API_HOST`) are still supported but deprecated. Please use the `AZURE_` prefix instead (e.g., `AZURE_API_HOST`).
+:::
