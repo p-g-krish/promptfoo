@@ -804,6 +804,13 @@
               "type": "string",
               "description": "Language of tests ot generate for this plugin"
             },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Entities related to your system that will be used for redteam generation"
+            },
             "plugins": {
               "type": "array",
               "items": {
