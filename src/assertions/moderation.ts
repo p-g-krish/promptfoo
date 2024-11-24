@@ -2,7 +2,7 @@ import invariant from 'tiny-invariant';
 import { matchesModeration } from '../matchers';
 import { parseChatPrompt } from '../providers/shared';
 import type { AssertionParams, GradingResult } from '../types';
-
+import logger from '../logger';
 export const handleModeration = async ({
   assertion,
   test,
@@ -10,6 +10,10 @@ export const handleModeration = async ({
   providerResponse,
   prompt,
 }: AssertionParams): Promise<GradingResult> => {
+  logger.warn(`prompt: ${prompt}`);
+  logger.warn(`providerResponse: ${JSON.stringify(providerResponse)}`);
+  logger.warn(`outputString: ${outputString}`);
+  logger.warn(`redteamFinalPrompt: ${providerResponse.metadata?.redteamFinalPrompt}`);
   // Some redteam techniques override the actual prompt that is used, so we need to assess that prompt for moderation.
   const promptToModerate = providerResponse.metadata?.redteamFinalPrompt || prompt;
   invariant(promptToModerate, 'moderation assertion type must have a prompt');
@@ -17,6 +21,7 @@ export const handleModeration = async ({
     !assertion.value || (Array.isArray(assertion.value) && typeof assertion.value[0] === 'string'),
     'moderation assertion value must be a string array if set',
   );
+  logger.warn(`promptToModerate: ${promptToModerate}`);
   if (promptToModerate[0] === '[' || promptToModerate[0] === '{') {
     // Try to extract the last user message from OpenAI-style prompts.
     try {
@@ -27,6 +32,7 @@ export const handleModeration = async ({
       if (parsedPrompt && parsedPrompt.length > 0) {
         prompt = parsedPrompt[parsedPrompt.length - 1].content;
       }
+      logger.warn(`prompt: ${prompt}`);
     } catch {
       // Ignore error
     }

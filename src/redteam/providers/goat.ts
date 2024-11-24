@@ -77,7 +77,9 @@ export default class GoatProvider implements ApiProvider {
           method: 'POST',
         });
         const data = await response.json();
-        messages.push(data.message);
+        if (data.message) {
+          messages.push(data.message);
+        }
         if (data.tokenUsage) {
           totalTokenUsage.total += data.tokenUsage.total || 0;
           totalTokenUsage.prompt += data.tokenUsage.prompt || 0;
@@ -114,10 +116,13 @@ export default class GoatProvider implements ApiProvider {
           targetResponse.output,
           `Expected target response output to be set, but got: ${JSON.stringify(targetResponse)}`,
         );
-        messages.push({
-          content: targetResponse.output,
-          role: 'assistant',
-        });
+        logger.warn(`targetResponse.output: ${JSON.stringify(targetResponse)}`);
+        if (targetResponse.output && typeof targetResponse.output === 'string') {
+          messages.push({
+            content: targetResponse.output,
+            role: 'assistant',
+          });
+        }
 
         if (targetResponse.tokenUsage) {
           totalTokenUsage.total += targetResponse.tokenUsage.total || 0;
