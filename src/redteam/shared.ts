@@ -31,7 +31,7 @@ export async function doRedteamRun(options: RedteamRunOptions): Promise<Eval | u
     // Do not use default config.
     configPath = tmpFile;
     logger.debug(`Using live config from ${tmpFile}`);
-    logger.debug(`Live config: ${JSON.stringify(options.liveRedteamConfig, null, 2)}`);
+    logger.info(`Live config: ${JSON.stringify(options.liveRedteamConfig, null, 2)}`);
   }
 
   // Generate new test cases

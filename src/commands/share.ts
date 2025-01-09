@@ -13,8 +13,12 @@ import { setupEnv } from '../util';
 import invariant from '../util/invariant';
 
 export async function createPublicUrl(evalRecord: Eval, showAuth: boolean) {
-  const url = await createShareableUrl(evalRecord, showAuth);
+  const result = await createShareableUrl(evalRecord, showAuth);
+  if (!result) {
+    throw new Error('Failed to create shareable URL');
+  }
 
+  const { url } = result;
   logger.info(`View results: ${chalk.greenBright.bold(url)}`);
   return url;
 }

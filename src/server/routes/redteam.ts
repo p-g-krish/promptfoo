@@ -2,9 +2,17 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import cliState from '../../cliState';
+import { cloudConfig } from '../../globalConfig/cloud';
 import logger from '../../logger';
 import { getRemoteGenerationUrl } from '../../redteam/remoteGeneration';
 import { doRedteamRun } from '../../redteam/shared';
+import { createShareableUrl } from '../../share';
+import {
+  completeJobInCloud,
+  createJobInCloud,
+  failJobInCloud,
+  sendLogForJobToCloud,
+} from '../../util/cloud';
 import { evalJobs } from './eval';
 
 export const redteamRouter = Router();
@@ -26,9 +34,19 @@ redteamRouter.post('/run', async (req: Request, res: Response): Promise<void> =>
     }
   }
 
-  const { config, force, verbose, delay } = req.body;
-  const id = uuidv4();
+  const { config, force, verbose, delay, configId, fromCloud, cloudToken, cloudApiHost } = req.body;
+  // call cloud
+  let id = uuidv4();
+  let cloudJob: { id: string };
+  if (fromCloud) {
+    await cloudConfig.validateAndSetApiToken(cloudToken, cloudApiHost);
+    cloudJob = await createJobInCloud({ config, configId, opts: { force, verbose, delay } });
+    id = cloudJob.id;
+    logger.info(`Job started and registered in cloud ${cloudJob}`);
+  }
+
   currentJobId = id;
+
   currentAbortController = new AbortController();
 
   // Initialize job status with empty logs array
@@ -57,6 +75,11 @@ redteamRouter.post('/run', async (req: Request, res: Response): Promise<void> =>
           job.logs.push(message);
         }
       }
+      if (cloudJob) {
+        sendLogForJobToCloud(cloudJob.id, message, new Date()).catch((e) =>
+          logger.error(`Error sending logs to cloud: ${e}`),
+        );
+      }
     },
     abortSignal: currentAbortController.signal,
   })
@@ -73,8 +96,19 @@ redteamRouter.post('/run', async (req: Request, res: Response): Promise<void> =>
         currentJobId = null;
         currentAbortController = null;
       }
+      if (cloudJob) {
+        let remoteId;
+        if (evalResult) {
+          const shareResult = await createShareableUrl(evalResult);
+          if (shareResult) {
+            remoteId = shareResult.remoteId;
+          }
+        }
+
+        await completeJobInCloud(cloudJob.id, remoteId);
+      }
     })
-    .catch((error) => {
+    .catch(async (error) => {
       console.error('Error running redteam:', error);
       const job = evalJobs.get(id);
       if (job && currentJobId === id) {
@@ -85,6 +119,14 @@ redteamRouter.post('/run', async (req: Request, res: Response): Promise<void> =>
         cliState.webUI = false;
         currentJobId = null;
         currentAbortController = null;
+      }
+      if (cloudJob) {
+        await sendLogForJobToCloud(
+          cloudJob.id,
+          `Fatal error running redteam: ${error}`,
+          new Date(),
+        );
+        await failJobInCloud(cloudJob.id);
       }
     });
 

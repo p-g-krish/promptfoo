@@ -76,7 +76,7 @@ export function stripAuthFromUrl(urlString: string): string {
 export async function createShareableUrl(
   evalRecord: Eval,
   showAuth: boolean = false,
-): Promise<string | null> {
+): Promise<{ url: string; remoteId: string } | null> {
   if (process.stdout.isTTY && !isCI() && !getEnvBool('PROMPTFOO_DISABLE_SHARE_EMAIL_REQUEST')) {
     let email = getUserEmail();
     if (!email) {
@@ -192,5 +192,7 @@ export async function createShareableUrl(
         : `${appBaseUrl}/eval/?evalId=${evalId}`;
   }
 
-  return showAuth ? fullUrl : stripAuthFromUrl(fullUrl);
+  return showAuth
+    ? { url: fullUrl, remoteId: evalId ?? '' }
+    : { url: stripAuthFromUrl(fullUrl), remoteId: evalId ?? '' };
 }

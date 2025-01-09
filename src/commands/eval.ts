@@ -210,9 +210,13 @@ export async function doEval(
       abortSignal: evaluateOptions.abortSignal,
     });
 
-    const shareableUrl =
+    const shareResults =
       cmdObj.share && config.sharing ? await createShareableUrl(evalRecord) : null;
+    let shareableUrl;
 
+    if (shareResults) {
+      shareableUrl = shareResults.url;
+    }
     let successes = 0;
     let failures = 0;
     let errors = 0;
