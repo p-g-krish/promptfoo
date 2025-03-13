@@ -83,29 +83,37 @@
     "@adaline/groq": "0.9.0",
     "@adaline/open-router": "0.8.0",
     "@adaline/openai": "0.22.0",
-    "@adaline/provider": "0.17.0",
-    "@adaline/together-ai": "0.8.0",
-    "@adaline/types": "0.15.0",
-    "@adaline/vertex": "0.9.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.602.0",
-    "@aws-sdk/credential-provider-sso": "^3.686.0",
-    "@azure/identity": "^4.0.0",
-    "@azure/openai-assistants": "^1.0.0-beta.5",
-    "@fal-ai/serverless-client": "^0.14.3",
-    "@ibm-cloud/watsonx-ai": "^1.1.0",
-    "@ibm-generative-ai/node-sdk": "^2.0.6",
-    "@playwright/browser-chromium": "^1.47.2",
-    "@smithy/node-http-handler": "^3.1.1 || ^4.0.0",
-    "google-auth-library": "^9.7.0",
-    "ibm-cloud-sdk-core": "^5.0.2",
-    "langfuse": "^3.7.0",
-    "node-sql-parser": "^5.2.0",
-    "pdf-parse": "^1.1.1",
-    "playwright": "^1.47.2",
-    "playwright-extra": "^4.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "sharp": "^0.33.5",
-    "node-gtts": "^2.0.2"
+    "@slack/rtm-api": "^6.2.1",
+    "@slack/web-api": "^6.13.0"
+  },
+  "peerDependenciesMeta": {
+    "@adaline/anthropic": {
+      "optional": true
+    },
+    "@adaline/azure": {
+      "optional": true
+    },
+    "@adaline/gateway": {
+      "optional": true
+    },
+    "@adaline/google": {
+      "optional": true
+    },
+    "@adaline/groq": {
+      "optional": true
+    },
+    "@adaline/open-router": {
+      "optional": true
+    },
+    "@adaline/openai": {
+      "optional": true
+    },
+    "@slack/rtm-api": {
+      "optional": true
+    },
+    "@slack/web-api": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.758.0",
