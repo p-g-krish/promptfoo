@@ -58,6 +58,12 @@ It also can generate [security vulnerability reports](https://www.promptfoo.dev/
 - 📦 [Node.js Package](https://www.promptfoo.dev/docs/usage/node-package/)
 - 🤖 [Supported Models](https://www.promptfoo.dev/docs/providers/)
 
+## Staying ahead
+
+Star promptfoo on GitHub and be instantly notified of new releases.
+
+![star-us](https://path-to-your-gif.gif)
+
 ## Contributing
 
 We welcome contributions! Check out our [contributing guide](https://www.promptfoo.dev/docs/contributing/) to get started.
