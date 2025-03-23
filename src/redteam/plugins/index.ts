@@ -42,6 +42,7 @@ import { PromptExtractionPlugin } from './promptExtraction';
 import { RbacPlugin } from './rbac';
 import { ShellInjectionPlugin } from './shellInjection';
 import { SqlInjectionPlugin } from './sqlInjection';
+import { ToolDiscoveryPlugin } from './toolDiscovery';
 
 export interface PluginFactory {
   key: string;
@@ -157,6 +158,7 @@ const pluginFactories: PluginFactory[] = [
     ),
   ),
   createPluginFactory(ExcessiveAgencyPlugin, 'excessive-agency'),
+  createPluginFactory(ToolDiscoveryPlugin, 'tool-discovery'),
   createPluginFactory(HarmbenchPlugin, 'harmbench'),
   createPluginFactory(HallucinationPlugin, 'hallucination'),
   createPluginFactory(ImitationPlugin, 'imitation'),
@@ -269,6 +271,7 @@ const remotePlugins: PluginFactory[] = [
   'harmful:specialized-advice',
   'hijacking',
   'rag-document-exfiltration',
+  'rag-poisoning',
   'reasoning-dos',
   'religion',
   'ssrf',

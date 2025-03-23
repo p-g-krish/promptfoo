@@ -2,7 +2,7 @@
   "name": "promptfoo",
   "description": "LLM eval & testing toolkit",
   "author": "Ian Webster",
-  "version": "0.107.0",
+  "version": "0.107.4",
   "license": "MIT",
   "type": "commonjs",
   "repository": {
@@ -57,7 +57,7 @@
     "local:web": "npm run dev --prefix src/app",
     "local": "ts-node --cwdMode --transpileOnly src/main.ts",
     "preversion": "[ \"$(git rev-parse --abbrev-ref HEAD)\" = \"main\" ] || (echo \"Error: Must be on main branch to version\" && exit 1) && git pull origin main && git checkout -b \"chore/bump-version-$(date +%s)\"",
-    "postversion": "npm run citation:generate && git add CITATION.cff && git commit --amend --no-edit && gh pr create --title \"chore: bump version $npm_package_version\" --body \"\"",
+    "postversion": "npm run citation:generate && git add CITATION.cff && git commit --amend --no-edit && gh pr create --repo promptfoo/promptfoo --title \"chore: bump version $npm_package_version\" --body \"\"",
     "prepublishOnly": "npm run build:clean && npm run build",
     "test:app": "npm run test --prefix src/app",
     "test:integration": "jest --config jest.integration.config.ts integration",
@@ -83,8 +83,31 @@
     "@adaline/groq": "0.9.0",
     "@adaline/open-router": "0.8.0",
     "@adaline/openai": "0.22.0",
+    "@adaline/provider": "0.17.0",
+    "@adaline/together-ai": "0.8.0",
+    "@adaline/types": "0.15.0",
+    "@adaline/vertex": "0.9.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.602.0",
+    "@aws-sdk/credential-provider-sso": "^3.686.0",
+    "@azure/identity": "^4.0.0",
+    "@azure/openai-assistants": "^1.0.0-beta.5",
+    "@fal-ai/serverless-client": "^0.14.3",
+    "@ibm-cloud/watsonx-ai": "^1.1.0",
+    "@ibm-generative-ai/node-sdk": "^2.0.6",
+    "@playwright/browser-chromium": "^1.47.2",
     "@slack/rtm-api": "^6.2.1",
-    "@slack/web-api": "^6.13.0"
+    "@slack/web-api": "^6.13.0",
+    "@smithy/node-http-handler": "^3.1.1 || ^4.0.0",
+    "google-auth-library": "^9.7.0",
+    "ibm-cloud-sdk-core": "^5.0.2",
+    "langfuse": "^3.7.0",
+    "node-gtts": "^2.0.2",
+    "node-sql-parser": "^5.2.0",
+    "pdf-parse": "^1.1.1",
+    "playwright": "^1.47.2",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "sharp": "^0.33.5"
   },
   "peerDependenciesMeta": {
     "@adaline/anthropic": {
@@ -108,21 +131,90 @@
     "@adaline/openai": {
       "optional": true
     },
+    "@adaline/provider": {
+      "optional": true
+    },
+    "@adaline/together-ai": {
+      "optional": true
+    },
+    "@adaline/types": {
+      "optional": true
+    },
+    "@adaline/vertex": {
+      "optional": true
+    },
+    "@aws-sdk/client-bedrock-runtime": {
+      "optional": true
+    },
+    "@aws-sdk/credential-provider-sso": {
+      "optional": true
+    },
+    "@azure/identity": {
+      "optional": true
+    },
+    "@azure/openai-assistants": {
+      "optional": true
+    },
+    "@fal-ai/serverless-client": {
+      "optional": true
+    },
+    "@ibm-cloud/watsonx-ai": {
+      "optional": true
+    },
+    "@ibm-generative-ai/node-sdk": {
+      "optional": true
+    },
+    "@playwright/browser-chromium": {
+      "optional": true
+    },
     "@slack/rtm-api": {
       "optional": true
     },
     "@slack/web-api": {
       "optional": true
+    },
+    "@smithy/node-http-handler": {
+      "optional": true
+    },
+    "google-auth-library": {
+      "optional": true
+    },
+    "ibm-cloud-sdk-core": {
+      "optional": true
+    },
+    "langfuse": {
+      "optional": true
+    },
+    "node-gtts": {
+      "optional": true
+    },
+    "node-sql-parser": {
+      "optional": true
+    },
+    "pdf-parse": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    },
+    "playwright-extra": {
+      "optional": true
+    },
+    "puppeteer-extra-plugin-stealth": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-bedrock-runtime": "^3.758.0",
-    "@aws-sdk/credential-provider-sso": "^3.758.0",
-    "@azure/identity": "^4.7.0",
-    "@eslint/js": "^9.21.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.772.0",
+    "@aws-sdk/credential-provider-sso": "^3.772.0",
+    "@azure/identity": "^4.8.0",
+    "@eslint/js": "^9.22.0",
     "@libsql/client": "^0.14.0",
     "@swc/cli": "^0.6.0",
-    "@swc/core": "^1.11.4",
+    "@swc/core": "^1.11.11",
     "@swc/jest": "^0.2.37",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/async": "^3.2.24",
@@ -133,7 +225,7 @@
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/debounce": "^1.2.4",
-    "@types/express": "^5.0.0",
+    "@types/express": "^5.0.1",
     "@types/glob": "^8.1.0",
     "@types/inquirer": "^9.0.7",
     "@types/jest": "^29.5.14",
@@ -144,13 +236,15 @@
     "@types/semver": "^7.5.8",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.27.0",
+    "@typescript-eslint/parser": "^8.27.0",
     "check-dependency-version-consistency": "^5.0.0",
     "cloudflare": "3.4.0",
     "concurrently": "^9.1.2",
     "drizzle-kit": "^0.30.4",
-    "eslint": "^9.21.0",
+    "eslint": "^9.22.0",
     "eslint-plugin-jest": "^28.11.0",
-    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "eslint-plugin-unicorn": "^57.0.0",
     "eslint-plugin-unused-imports": "^4.1.4",
@@ -158,18 +252,19 @@
     "madge": "^8.0.0",
     "nock": "^13.5.6",
     "nodemon": "^3.1.9",
-    "prettier": "^3.5.2",
-    "shx": "^0.3.4",
-    "supertest": "^7.0.0",
+    "prettier": "^3.5.3",
+    "shx": "^0.4.0",
+    "supertest": "^7.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.25.0",
-    "zod-to-json-schema": "^3.24.3"
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.27.0",
+    "zod-to-json-schema": "^3.24.5"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@apidevtools/json-schema-ref-parser": "^11.9.1",
-    "@googleapis/sheets": "^9.3.1",
+    "@apidevtools/json-schema-ref-parser": "^11.9.3",
+    "@googleapis/sheets": "^9.6.0",
+    "@types/ws": "^8.18.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "async": "^3.2.6",
@@ -181,7 +276,7 @@
     "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
-    "compression": "^1.7.5",
+    "compression": "^1.8.0",
     "cors": "^2.8.5",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.5.2",
@@ -198,10 +293,10 @@
     "inquirer": "^11.1.0",
     "js-rouge": "^3.0.0",
     "js-yaml": "^4.1.0",
-    "mathjs": "^14.2.1",
+    "mathjs": "^14.3.1",
     "node-cache": "^5.1.2",
     "nunjucks": "^3.2.4",
-    "openai": "^4.86.1",
+    "openai": "^4.89.0",
     "opener": "^1.5.2",
     "proxy-agent": "^6.5.0",
     "python-shell": "^5.0.0",
@@ -210,7 +305,7 @@
     "semver": "^7.7.1",
     "socket.io": "^4.8.1",
     "tsx": "^4.19.3",
-    "undici": "^7.2.3",
+    "undici": "^7.5.0",
     "uuid": "^10.0.0",
     "winston": "^3.17.0",
     "ws": "^8.18.1",

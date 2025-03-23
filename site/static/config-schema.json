@@ -69,6 +69,9 @@
                             "ANTHROPIC_API_KEY": {
                               "type": "string"
                             },
+                            "ANTHROPIC_BASE_URL": {
+                              "type": "string"
+                            },
                             "AWS_BEDROCK_REGION": {
                               "type": "string"
                             },
@@ -1088,6 +1091,7 @@
                           "politics",
                           "prompt-extraction",
                           "rag-document-exfiltration",
+                          "rag-poisoning",
                           "rbac",
                           "reasoning-dos",
                           "religion",
@@ -1095,6 +1099,7 @@
                           "sql-injection",
                           "ssrf",
                           "system-prompt-override",
+                          "tool-discovery",
                           "toxicity"
                         ]
                       },
@@ -1226,6 +1231,7 @@
                               "politics",
                               "prompt-extraction",
                               "rag-document-exfiltration",
+                              "rag-poisoning",
                               "rbac",
                               "reasoning-dos",
                               "religion",
@@ -1233,6 +1239,7 @@
                               "sql-injection",
                               "ssrf",
                               "system-prompt-override",
+                              "tool-discovery",
                               "toxicity"
                             ]
                           },
