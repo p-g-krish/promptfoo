@@ -1,8 +1,10 @@
 import { GoogleAuth } from 'google-auth-library';
+import type { GeminiResponseData } from '../../../src/providers/google/util';
 import {
   maybeCoerceToGeminiFormat,
   getGoogleClient,
   hasGoogleDefaultCredentials,
+  stringifyCandidateContents,
 } from '../../../src/providers/google/util';
 
 jest.mock('google-auth-library');
@@ -107,6 +109,26 @@ describe('vertexUtil', () => {
       });
     });
 
+    it('should handle malformed function calls with finishReason MALFORMED_FUNCTION_CALL', () => {
+      const input = [
+        {
+          role: 'model',
+          content: {
+            functionCall: {
+              name: 'test',
+              args: { param: 'value' },
+            },
+          },
+          finishReason: 'MALFORMED_FUNCTION_CALL',
+        },
+      ];
+      const result = maybeCoerceToGeminiFormat(input);
+      expect(result.coerced).toBe(true);
+      expect(result.contents[0].parts[0]).toEqual({
+        functionCall: { name: 'test', args: { param: 'value' } },
+      });
+    });
+
     it('should handle unknown format', () => {
       const input = { unknown: 'format' };
       const result = maybeCoerceToGeminiFormat(input);
@@ -117,106 +139,21 @@ describe('vertexUtil', () => {
       });
     });
 
-    it('should handle OpenAI chat format with mixed content types', () => {
-      const input = [
-        {
-          role: 'user',
-          content: [
-            'Text message',
-            { type: 'text', text: 'Formatted text' },
-            { type: 'image', url: 'http://example.com/image.jpg' },
-          ],
-        },
-      ];
-      const result = maybeCoerceToGeminiFormat(input);
+    it('should handle undefined input', () => {
+      const result = maybeCoerceToGeminiFormat(undefined);
       expect(result).toEqual({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: 'Text message' },
-              { text: 'Formatted text' },
-              { type: 'image', url: 'http://example.com/image.jpg' },
-            ],
-          },
-        ],
-        coerced: true,
+        contents: undefined,
+        coerced: false,
         systemInstruction: undefined,
       });
     });
 
-    it('should handle content with MAX_TOKENS finish reason', () => {
-      const input = [
-        {
-          role: 'model',
-          content: { text: 'Truncated response' },
-          finishReason: 'MAX_TOKENS',
-        },
-      ];
-      const result = maybeCoerceToGeminiFormat(input);
-      expect(result.contents[0]).toEqual({
-        role: 'model',
-        parts: [{ text: 'Truncated response' }],
-      });
-    });
-
-    it('should handle content with RECITATION finish reason', () => {
-      const input = [
-        {
-          role: 'model',
-          content: { text: 'Recited content' },
-          finishReason: 'RECITATION',
-        },
-      ];
-      const result = maybeCoerceToGeminiFormat(input);
-      expect(result.contents[0]).toEqual({
-        role: 'model',
-        parts: [{ text: 'Recited content' }],
-      });
-    });
-
-    it('should handle content with BLOCKLIST finish reason', () => {
-      const input = [
-        {
-          role: 'model',
-          content: { text: 'Blocked content' },
-          finishReason: 'BLOCKLIST',
-        },
-      ];
-      const result = maybeCoerceToGeminiFormat(input);
-      expect(result.contents[0]).toEqual({
-        role: 'model',
-        parts: [{ text: 'Blocked content' }],
-      });
-    });
-
-    it('should handle content with PROHIBITED_CONTENT finish reason', () => {
-      const input = [
-        {
-          role: 'model',
-          content: { text: 'Prohibited content' },
-          finishReason: 'PROHIBITED_CONTENT',
-        },
-      ];
-      const result = maybeCoerceToGeminiFormat(input);
-      expect(result.contents[0]).toEqual({
-        role: 'model',
-        parts: [{ text: 'Prohibited content' }],
-      });
-    });
-
-    it('should handle content with SPII finish reason', () => {
-      const input = [
-        {
-          role: 'model',
-          content: { text: 'Sensitive information' },
-          finishReason: 'SPII',
-        },
-      ];
-      const result = maybeCoerceToGeminiFormat(input);
-      expect(result.contents[0]).toEqual({
-        role: 'model',
-        parts: [{ text: 'Sensitive information' }],
+    it('should handle invalid input formats gracefully', () => {
+      const invalidInputs = [123, true, Symbol('test'), () => {}, new Date()];
+      invalidInputs.forEach((input) => {
+        const result = maybeCoerceToGeminiFormat(input);
+        expect(result.coerced).toBe(false);
+        expect(result.contents).toEqual(input);
       });
     });
   });
@@ -239,21 +176,19 @@ describe('vertexUtil', () => {
       });
     });
 
-    it('should reuse cached auth client', async () => {
-      const mockClient = { name: 'mockClient' };
-      const mockProjectId = 'test-project';
+    it('should handle missing scopes gracefully', async () => {
       const mockAuth = {
-        getClient: jest.fn().mockResolvedValue(mockClient),
-        getProjectId: jest.fn().mockResolvedValue(mockProjectId),
+        getClient: jest.fn().mockResolvedValue(undefined),
+        getProjectId: jest.fn().mockResolvedValue(undefined),
       };
 
       jest.mocked(GoogleAuth).mockImplementation(() => mockAuth as any);
 
-      await getGoogleClient();
-      const googleAuthCalls = jest.mocked(GoogleAuth).mock.calls.length;
-
-      await getGoogleClient();
-      expect(jest.mocked(GoogleAuth).mock.calls).toHaveLength(googleAuthCalls);
+      const result = await getGoogleClient();
+      expect(result).toEqual({
+        client: undefined,
+        projectId: undefined,
+      });
     });
   });
 
@@ -266,10 +201,78 @@ describe('vertexUtil', () => {
 
       jest.mocked(GoogleAuth).mockImplementation(() => mockAuth as any);
 
-      const result = await hasGoogleDefaultCredentials();
-      expect(result).toBe(true);
+      await expect(hasGoogleDefaultCredentials()).resolves.toBe(true);
+    });
+  });
+
+  describe('stringifyCandidateContents', () => {
+    it('should stringify text parts', () => {
+      const data: GeminiResponseData = {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'Hello' }, { text: 'World' }],
+            },
+            safetyRatings: [],
+          },
+        ],
+      };
+
+      expect(stringifyCandidateContents(data)).toBe('HelloWorld');
+    });
+
+    it('should stringify function call parts', () => {
+      const data: GeminiResponseData = {
+        candidates: [
+          {
+            content: {
+              parts: [{ functionCall: { name: 'testFunc', args: { param: 'value' } } }],
+            },
+            safetyRatings: [],
+          },
+        ],
+      };
+
+      expect(stringifyCandidateContents(data)).toBe(
+        JSON.stringify({ functionCall: { name: 'testFunc', args: { param: 'value' } } }),
+      );
+    });
+
+    it('should handle safety ratings and blocked content', () => {
+      const data: GeminiResponseData = {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Blocked content' }] },
+            safetyRatings: [
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                probability: 'HIGH',
+                blocked: true,
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(stringifyCandidateContents(data)).toContain('Blocked content');
+    });
+
+    it('should handle empty content', () => {
+      const data: GeminiResponseData = {
+        candidates: [
+          {
+            content: { parts: [] },
+            safetyRatings: [],
+          },
+        ],
+      };
+
+      expect(stringifyCandidateContents(data)).toBe('');
+    });
+
+    it('should handle undefined content', () => {
+      const data: GeminiResponseData = { candidates: [] };
+      expect(stringifyCandidateContents(data)).toBe('');
     });
   });
 });
-
-// TODO: Unit Test

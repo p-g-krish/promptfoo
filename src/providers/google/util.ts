@@ -273,3 +273,5 @@ export function stringifyCandidateContents(data: GeminiResponseData) {
   }
   return output;
 }
+
+export { PartSchema, ContentSchema, GeminiFormatSchema, cachedAuth };
