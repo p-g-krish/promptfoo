@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { GoogleAuth } from 'google-auth-library';
 import * as nunjucks from 'nunjucks';
 import logger from '../../../src/logger';
-import type { Tool } from '../../../src/providers/google/types';
+import type { Tool, Part } from '../../../src/providers/google/types';
 import {
   maybeCoerceToGeminiFormat,
   geminiFormatAndSystemInstructions,
@@ -11,6 +11,7 @@ import {
   loadFile,
   parseStringObject,
   validateFunctionCall,
+  stringifyCandidateContents,
 } from '../../../src/providers/google/util';
 
 jest.mock('google-auth-library');
@@ -634,6 +635,56 @@ describe('util', () => {
       expect(result).toEqual(JSON.parse(tools));
       expect(fs.existsSync).toHaveBeenCalledWith(expect.stringContaining('fp.json'));
       expect(fs.readFileSync).toHaveBeenCalledWith(expect.stringContaining('fp.json'), 'utf8');
+    });
+  });
+
+  describe('stringifyCandidateContents', () => {
+    it('should handle text-only content', () => {
+      const candidate = {
+        content: {
+          parts: [{ text: 'Hello' }, { text: ' World' }] as Part[],
+        },
+        safetyRatings: [],
+      };
+      expect(stringifyCandidateContents(candidate)).toBe('Hello World');
+    });
+
+    it('should handle mixed content types', () => {
+      const candidate = {
+        content: {
+          parts: [
+            { text: 'Text part' },
+            { inlineData: { mimeType: 'image/jpeg', data: 'base64data' } },
+          ] as Part[],
+        },
+        safetyRatings: [],
+      };
+      expect(stringifyCandidateContents(candidate)).toBe(
+        'Text part{"inlineData":{"mimeType":"image/jpeg","data":"base64data"}}',
+      );
+    });
+
+    it('should handle empty parts array', () => {
+      const candidate = {
+        content: { parts: [] as Part[] },
+        safetyRatings: [],
+      };
+      expect(stringifyCandidateContents(candidate)).toBe('');
+    });
+
+    it('should handle non-text parts only', () => {
+      const candidate = {
+        content: {
+          parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: 'data1' } },
+            { inlineData: { mimeType: 'image/jpeg', data: 'data2' } },
+          ] as Part[],
+        },
+        safetyRatings: [],
+      };
+      expect(stringifyCandidateContents(candidate)).toBe(
+        '{"inlineData":{"mimeType":"image/jpeg","data":"data1"}}{"inlineData":{"mimeType":"image/jpeg","data":"data2"}}',
+      );
     });
   });
 
