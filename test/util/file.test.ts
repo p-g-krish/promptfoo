@@ -191,9 +191,7 @@ describe('file utilities', () => {
       cliState.basePath = basePath;
       const input = ['file://test1.txt', 'file://test2.txt', 'file://test3.txt'];
 
-      // Mock readFileSync to return consistent data
-      const mockFileData = 'test content';
-      jest.mocked(fs.readFileSync).mockReturnValue(mockFileData);
+      jest.mocked(fs.readFileSync).mockReturnValue(mockFileContent);
 
       maybeLoadFromExternalFile(input);
 
@@ -222,12 +220,21 @@ describe('file utilities', () => {
       jest.spyOn(process, 'cwd').mockReturnValue(originalCwd);
     });
 
-    it('returns absolute path unchanged', () => {
+    it('returns absolute path unchanged when not cloud config', () => {
       const absolutePath = path.resolve('/absolute/path/file.txt');
-      expect(getResolvedRelativePath(absolutePath, false)).toBe(absolutePath);
+      expect(getResolvedRelativePath(absolutePath)).toBe(absolutePath);
     });
 
-    it('uses process.cwd() when isCloudConfig is true', () => {
+    it('returns relative path unchanged when not cloud config', () => {
+      expect(getResolvedRelativePath('relative/file.txt')).toBe('relative/file.txt');
+    });
+
+    it('returns absolute path unchanged when cloud config', () => {
+      const absolutePath = path.resolve('/absolute/path/file.txt');
+      expect(getResolvedRelativePath(absolutePath, true)).toBe(absolutePath);
+    });
+
+    it('joins with cwd when relative path and cloud config', () => {
       expect(getResolvedRelativePath('relative/file.txt', true)).toBe(
         path.join('/mock/cwd', 'relative/file.txt'),
       );
