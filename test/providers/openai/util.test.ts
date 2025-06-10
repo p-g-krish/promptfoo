@@ -196,6 +196,16 @@ describe('calculateOpenAICost', () => {
     expect(cost).toBeCloseTo((1000 * 1.5 + 500 * 6.0) / 1e6, 6);
   });
 
+  it('should calculate cost correctly for o3-pro', () => {
+    const cost = calculateOpenAICost('o3-pro', {}, 1000, 500);
+    expect(cost).toBeCloseTo((1000 * 20 + 500 * 80) / 1e6, 6);
+  });
+
+  it('should calculate cost correctly for o3-pro-2025-06-10', () => {
+    const cost = calculateOpenAICost('o3-pro-2025-06-10', {}, 1000, 500);
+    expect(cost).toBeCloseTo((1000 * 20 + 500 * 80) / 1e6, 6);
+  });
+
   it('should handle undefined token counts', () => {
     const cost = calculateOpenAICost('gpt-4', {}, undefined, undefined);
     expect(cost).toBeUndefined();
