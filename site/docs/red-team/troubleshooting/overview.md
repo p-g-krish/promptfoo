@@ -11,6 +11,7 @@ Common issues encountered when red teaming LLM applications with promptfoo.
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | [Attack Generation](/docs/red-team/troubleshooting/attack-generation)             | Configuration errors in system scope, permissions, or available actions can prevent effective attack generation.            |
 | [Connection Problems](/docs/red-team/troubleshooting/connecting-to-targets)       | Authentication failures, rate limiting issues, and incorrect endpoint configuration can prevent successful API connections. |
+| [Environment Variables](/docs/red-team/troubleshooting/environment-variables)     | Common configuration issues with red team environment variables and their solutions.                                        |
 | [False Positives](/docs/red-team/troubleshooting/grading-results)                 | Insufficient system context or misconfigured grader settings can lead to incorrect vulnerability assessments.               |
 | [Multi-Turn Sessions](/docs/red-team/troubleshooting/multi-turn-sessions)         | Session management issues can disrupt conversation context in both client and server-side implementations.                  |
 | [Multiple Response Types](/docs/red-team/troubleshooting/multiple-response-types) | Response parsing errors occur when handling non-standard formats, guardrails, or error states.                              |

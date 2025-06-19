@@ -593,7 +593,7 @@ Some providers such as Anthropic may disable your account for generating harmful
 
 ### Remote Generation
 
-By default, promptfoo uses a remote service for generating adversarial certain inputs. This service is optimized for high-quality, diverse test cases. However, you can disable this feature and fall back to local generation by setting the `PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION` environment variable to `true`.
+By default, promptfoo uses a remote service for generating adversarial certain inputs. This service is optimized for high-quality, diverse test cases. However, you can disable this feature and fall back to local generation by setting the `PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION` environment variable to `true`. See [environment variables troubleshooting](/docs/red-team/troubleshooting/environment-variables) for details.
 
 :::warning
 Disabling remote generation may result in lower quality adversarial inputs. For best results, we recommend using the default remote generation service.
