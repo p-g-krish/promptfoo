@@ -10,21 +10,19 @@ Common issues and solutions when configuring red team behavior through environme
 
 The following environment variables control red team behavior and can be used to troubleshoot common issues:
 
-| Variable                                      | Default | Description                                                                                   |
-| --------------------------------------------- | ------- | --------------------------------------------------------------------------------------------- |
-| `PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION` | `false` | Disable remote adversarial generation and target discovery. Disabling may lower test quality. |
-| `PROMPTFOO_DISABLE_REDTEAM_MODERATION`        | `true`  | Skip built-in harmful content moderation checks.                                              |
-| `PROMPTFOO_NUM_JAILBREAK_ITERATIONS`          | `4`     | Number of iterations attempted by iterative jailbreak strategies.                             |
-| `PROMPTFOO_JAILBREAK_TEMPERATURE`             | `0.7`   | Sampling temperature used when generating jailbreak attempts.                                 |
-| `PROMPTFOO_MAX_HARMFUL_TESTS_PER_REQUEST`     | `5`     | Maximum harmful tests generated per request.                                                  |
-| `PROMPTFOO_REMOTE_GENERATION_URL`             |         | URL for a custom remote generation endpoint.                                                  |
-| `PROMPTFOO_UNALIGNED_INFERENCE_ENDPOINT`      |         | Endpoint for unaligned or harmful inference.                                                  |
+| Variable                                      | Default | Description                                                                                      |
+| --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION` | `false` | Disable remote adversarial generation and target discovery. Affects many plugins and strategies. |
+| `PROMPTFOO_NUM_JAILBREAK_ITERATIONS`          | `4`     | Number of iterations attempted by iterative jailbreak strategies.                                |
+| `PROMPTFOO_JAILBREAK_TEMPERATURE`             | `0.7`   | Sampling temperature used when generating jailbreak attempts.                                    |
+| `PROMPTFOO_REMOTE_GENERATION_URL`             |         | URL for a custom remote generation endpoint.                                                     |
+| `PROMPTFOO_UNALIGNED_INFERENCE_ENDPOINT`      |         | URL for a custom unaligned inference endpoint.                                                   |
 
 ## Common Issues and Solutions
 
 ### Remote Generation Not Working
 
-**Problem**: Red team generation fails or produces low-quality results.
+**Problem**: Red team generation fails, produces low-quality results, or certain strategies/plugins don't work.
 
 **Solution**: Check if remote generation is disabled:
 
@@ -37,6 +35,12 @@ unset PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION
 # OR explicitly set to false
 export PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION=false
 ```
+
+**Components that require remote generation:**
+
+- **Strategies**: `gcg`, `citation`, `likert`, `simpleAudio`, `simpleVideo`, `singleTurnComposite`
+- **Providers**: `goat`, `pandamonium`, `bestOfN`
+- **Target discovery** (`promptfoo redteam discover`)
 
 If you're behind a corporate firewall, see [Remote Generation Errors](/docs/red-team/troubleshooting/remote-generation) for network configuration help.
 
@@ -57,6 +61,8 @@ export PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION=false
 
 - Remote adversarial test generation
 - Target discovery functionality (`promptfoo redteam discover`)
+
+This explains why target discovery may have been disabled in earlier versions when this variable was changed.
 
 ### Jailbreak Strategies Taking Too Long
 
@@ -86,20 +92,6 @@ export PROMPTFOO_JAILBREAK_TEMPERATURE=0.3
 export PROMPTFOO_JAILBREAK_TEMPERATURE=0.9
 ```
 
-### Rate Limiting Issues
-
-**Problem**: Getting rate limited when generating many test cases.
-
-**Solution**: Reduce the number of harmful tests per request:
-
-```bash
-# Reduce batch size to avoid rate limits
-export PROMPTFOO_MAX_HARMFUL_TESTS_PER_REQUEST=2
-
-# Default is 5, increase only if your API can handle it
-export PROMPTFOO_MAX_HARMFUL_TESTS_PER_REQUEST=10
-```
-
 ### Using Custom Generation Endpoints
 
 **Problem**: Need to use a custom or self-hosted generation service.
@@ -112,20 +104,6 @@ export PROMPTFOO_REMOTE_GENERATION_URL=https://your-custom-endpoint.com/api
 
 # Use custom unaligned inference endpoint
 export PROMPTFOO_UNALIGNED_INFERENCE_ENDPOINT=https://your-endpoint.com/inference
-```
-
-### Moderation Interfering with Tests
-
-**Problem**: Built-in moderation is blocking legitimate test cases.
-
-**Solution**: The moderation is disabled by default, but if you've enabled it and it's interfering:
-
-```bash
-# Disable moderation (this is the default)
-export PROMPTFOO_DISABLE_REDTEAM_MODERATION=true
-
-# Enable moderation if needed
-export PROMPTFOO_DISABLE_REDTEAM_MODERATION=false
 ```
 
 ## Setting Environment Variables
@@ -167,23 +145,19 @@ Settings are applied in this order (highest to lowest priority):
 
 ## Quick Reference
 
-For quick scanning, here are all red team environment variables:
+For quick scanning, here are the key red team environment variables:
 
 ```bash
 # Core red team functionality
 PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION=false  # Enables remote generation & target discovery
-PROMPTFOO_DISABLE_REDTEAM_MODERATION=true          # Disables content moderation (default)
 
 # Jailbreak strategy tuning
 PROMPTFOO_NUM_JAILBREAK_ITERATIONS=4               # Number of jailbreak iterations
 PROMPTFOO_JAILBREAK_TEMPERATURE=0.7                # Sampling temperature for jailbreaks
 
-# Rate limiting and batching
-PROMPTFOO_MAX_HARMFUL_TESTS_PER_REQUEST=5          # Max harmful tests per API request
-
-# Custom endpoints
+# Custom endpoints (enterprise)
 PROMPTFOO_REMOTE_GENERATION_URL=                   # Custom remote generation URL
-PROMPTFOO_UNALIGNED_INFERENCE_ENDPOINT=            # Custom inference endpoint
+PROMPTFOO_UNALIGNED_INFERENCE_ENDPOINT=            # Custom unaligned inference URL
 ```
 
 ## Getting Help
