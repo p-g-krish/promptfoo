@@ -1676,6 +1676,9 @@
             },
             "maxEvalTimeMs": {
               "type": "number"
+            },
+            "isRedteam": {
+              "type": "boolean"
             }
           },
           "additionalProperties": false
