@@ -3,7 +3,7 @@ import path from 'path';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import cliState from '../src/cliState';
 import { VERSION } from '../src/constants';
-import { getEnvBool, getEnvString } from '../src/envars';
+import { getEnvBool, getEnvInt, getEnvString } from '../src/envars';
 import {
   fetchWithProxy,
   fetchWithRetries,
@@ -936,6 +936,8 @@ describe('fetchWithProxy with NO_PROXY', () => {
     delete process.env.npm_config_http_proxy;
     delete process.env.npm_config_proxy;
     delete process.env.all_proxy;
+    delete process.env.NO_PROXY;
+    delete process.env.no_proxy;
   });
 
   afterEach(() => {
@@ -947,6 +949,8 @@ describe('fetchWithProxy with NO_PROXY', () => {
     delete process.env.npm_config_http_proxy;
     delete process.env.npm_config_proxy;
     delete process.env.all_proxy;
+    delete process.env.NO_PROXY;
+    delete process.env.no_proxy;
     jest.resetAllMocks();
   });
 
