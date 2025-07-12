@@ -2,12 +2,14 @@ import chalk from 'chalk';
 import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as os from 'os';
-import { version } from '../../package.json';
+import packageJson from '../../package.json' with { type: 'json' };
 import { getEnvString } from '../envars';
 import logger from '../logger';
 import type { UnifiedConfig } from '../types';
 import { printBorder } from '../util';
 import { resolveConfigs } from '../util/config/load';
+
+const { version } = packageJson;
 
 interface DebugOptions {
   config?: string;

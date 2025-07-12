@@ -353,8 +353,8 @@ export async function loadTestsFromGlob(
         .map((line) => JSON.parse(line));
       testCases = await _deref(testCases, testFile);
     } else if (testFile.endsWith('.json')) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      testCases = await _deref(require(testFile), testFile);
+      const jsonContent = await import(testFile, { with: { type: 'json' } });
+      testCases = await _deref(jsonContent.default, testFile);
     } else {
       throw new Error(`Unsupported file type for test file: ${testFile}`);
     }

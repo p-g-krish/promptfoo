@@ -1,6 +1,8 @@
 import chalk from 'chalk';
-import { engines } from '../package.json';
+import packageJson from '../package.json' with { type: 'json' };
 import logger from './logger';
+
+const { engines } = packageJson;
 
 /**
  * Function to check the current Node version against the required version

@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import type { Options as PythonShellOptions } from 'python-shell';
 import { PythonShell } from 'python-shell';
+import { fileURLToPath } from 'url';
 import { getEnvBool, getEnvString } from '../envars';
 import logger from '../logger';
 import { safeJsonStringify } from '../util/json';
@@ -143,7 +144,7 @@ export async function runPython(
     env: process.env,
     mode: 'binary',
     pythonPath,
-    scriptPath: __dirname,
+    scriptPath: path.dirname(fileURLToPath(import.meta.url)),
     // When `inherit` is used, `import pdb; pdb.set_trace()` will work.
     ...(getEnvBool('PROMPTFOO_PYTHON_DEBUG_ENABLED') && { stdio: 'inherit' }),
   };
