@@ -57,6 +57,7 @@ This project uses ES Modules (ESM) exclusively:
 - Import paths require .js extensions in the compiled output
 - Use `import.meta.url` instead of `__filename`/`__dirname`
 - For `__dirname` equivalent:
+
   ```typescript
   import { fileURLToPath } from 'url';
 

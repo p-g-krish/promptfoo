@@ -7,8 +7,12 @@ export function getDirectory() {
 export function importModule(filePath: string, functionName?: string) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = require(path.resolve(filePath));
+
+  // Handle ES module default exports
+  const resolvedMod = mod?.default?.default || mod?.default || mod;
+
   if (functionName) {
-    return mod[functionName];
+    return resolvedMod[functionName];
   }
-  return mod;
+  return resolvedMod;
 }

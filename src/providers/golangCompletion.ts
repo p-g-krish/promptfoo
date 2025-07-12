@@ -127,7 +127,10 @@ export class GolangProvider implements ApiProvider {
         // Copy wrapper.go to the same directory as the script
         const tempWrapperPath = path.join(scriptDir, 'wrapper.go');
         fs.mkdirSync(scriptDir, { recursive: true });
-        fs.copyFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../golang/wrapper.go'), tempWrapperPath);
+        fs.copyFileSync(
+          path.join(path.dirname(fileURLToPath(import.meta.url)), '../golang/wrapper.go'),
+          tempWrapperPath,
+        );
 
         const executablePath = path.join(tempDir, 'golang_wrapper');
         const tempScriptPath = path.join(tempDir, relativeScriptPath);

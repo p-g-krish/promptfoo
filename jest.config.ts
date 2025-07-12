@@ -18,8 +18,14 @@ const config: Config = {
     '<rootDir>/src/app',
   ],
   transform: {
-    '^.+\\.m?[tj]sx?$': '@swc/jest',
+    '^.+\\.m?[tj]sx?$': '<rootDir>/jest-esm-transformer.cjs',
   },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(chalk|execa|strip-ansi|ansi-regex|ora|cli-spinners|log-symbols|is-unicode-supported|figures|string-width|emoji-regex|get-east-asian-width|onetime|signal-exit|mimic-function|human-signals|is-stream|npm-run-path|path-key|unicorn-magic)/)',
+  ],
 };
 
 export default config;

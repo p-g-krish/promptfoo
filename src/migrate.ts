@@ -10,7 +10,11 @@ import logger from './logger';
 export async function runDbMigrations() {
   try {
     const db = getDb();
-    const migrationsFolder = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
+    const migrationsFolder = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '..',
+      'drizzle',
+    );
     logger.debug(`[DB Migrate] Running migrations from ${migrationsFolder}...`);
     await migrate(db, { migrationsFolder });
     logger.debug('[DB Migrate] Migrations completed');
