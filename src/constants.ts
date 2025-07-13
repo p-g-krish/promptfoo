@@ -1,7 +1,6 @@
-import packageJson from '../package.json' with { type: 'json' };
+import { version } from './packageInfo';
 import { getEnvInt, getEnvString } from './envars';
 
-const { version } = packageJson;
 export const VERSION = version;
 
 export const DEFAULT_QUERY_LIMIT = 100;

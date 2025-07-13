@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import packageJson from '../package.json' with { type: 'json' };
+import { version } from './packageInfo';
 import { checkNodeVersion } from './checkNodeVersion';
 import { authCommand } from './commands/auth';
 import { cacheCommand } from './commands/cache';
@@ -31,8 +31,6 @@ import { redteamSetupCommand } from './redteam/commands/setup';
 import { checkForUpdates } from './updates';
 import { setupEnv } from './util';
 import { loadDefaultConfig } from './util/config/default';
-
-const { version } = packageJson;
 
 /**
  * Adds verbose and env-file options to all commands recursively
