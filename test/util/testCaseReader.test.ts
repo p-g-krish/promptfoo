@@ -1094,7 +1094,7 @@ describe('readTests', () => {
     jest.mocked(globSync).mockReturnValue(['test.yaml']);
     jest
       .mocked(getEnvBool)
-      .mockImplementation((key) => (key === 'PROMPTFOO_NO_TESTCASE_ASSERT_WARNING'));
+      .mockImplementation((key) => key === 'PROMPTFOO_NO_TESTCASE_ASSERT_WARNING');
 
     await readTests('test.yaml');
 

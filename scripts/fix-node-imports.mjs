@@ -39,12 +39,12 @@ const NODE_MODULES = [
 
 const NODE_MODULES_REGEX = new RegExp(
   `(import\\s+(?:[\\w\\s{},*]+\\s+)?(?:from\\s+)?['"])(?!node:)(${NODE_MODULES.join('|')})(/[^'"]*)?(['"])`,
-  'g'
+  'g',
 );
 
 const NODE_MODULES_REQUIRE_REGEX = new RegExp(
   `(require\\s*\\(['"])(?!node:)(${NODE_MODULES.join('|')})(/[^'"]*)?(['"]\\))`,
-  'g'
+  'g',
 );
 
 function fixNodeImportsInFile(filePath) {
@@ -56,16 +56,22 @@ function fixNodeImportsInFile(filePath) {
   let modified = false;
 
   // Fix ES module imports
-  const newContent = content.replace(NODE_MODULES_REGEX, (match, prefix, moduleName, subPath, suffix) => {
-    modified = true;
-    return `${prefix}node:${moduleName}${subPath || ''}${suffix}`;
-  });
+  const newContent = content.replace(
+    NODE_MODULES_REGEX,
+    (match, prefix, moduleName, subPath, suffix) => {
+      modified = true;
+      return `${prefix}node:${moduleName}${subPath || ''}${suffix}`;
+    },
+  );
 
   // Also fix any require statements (for compatibility)
-  const finalContent = newContent.replace(NODE_MODULES_REQUIRE_REGEX, (match, prefix, moduleName, subPath, suffix) => {
-    modified = true;
-    return `${prefix}node:${moduleName}${subPath || ''}${suffix}`;
-  });
+  const finalContent = newContent.replace(
+    NODE_MODULES_REQUIRE_REGEX,
+    (match, prefix, moduleName, subPath, suffix) => {
+      modified = true;
+      return `${prefix}node:${moduleName}${subPath || ''}${suffix}`;
+    },
+  );
 
   if (modified) {
     fs.writeFileSync(filePath, finalContent, 'utf8');
@@ -75,11 +81,11 @@ function fixNodeImportsInFile(filePath) {
 
 function walkDirectory(dir) {
   const files = fs.readdirSync(dir);
-  
+
   for (const file of files) {
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
-    
+
     if (stat.isDirectory()) {
       // Skip node_modules and dist directories
       if (file === 'node_modules' || file === 'dist' || file === '.git') {
@@ -99,4 +105,4 @@ walkDirectory(path.join(projectRoot, 'test'));
 fixNodeImportsInFile(path.join(projectRoot, 'tsup.config.ts'));
 fixNodeImportsInFile(path.join(projectRoot, 'jest.config.ts'));
 
-console.log('Node.js imports fixed!'); 
+console.log('Node.js imports fixed!');

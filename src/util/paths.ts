@@ -28,4 +28,4 @@ export function getPaths(metaUrl: string): { dirname: string; filename: string }
   const filename = getFilename(metaUrl);
   const dirname = getDirname(metaUrl);
   return { dirname, filename };
-} 
+}
