@@ -96,6 +96,9 @@ export default defineConfig({
     console.log('Fixing JSON imports...');
     execSync('node scripts/fix-json-imports.mjs', { stdio: 'inherit' });
 
+    console.log('Fixing constants imports...');
+    execSync('node scripts/fix-constants-imports.mjs', { stdio: 'inherit' });
+
     console.log('Building React app...');
     execSync('npm run build:app', { stdio: 'inherit' });
 
