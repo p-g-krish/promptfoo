@@ -1,7 +1,7 @@
 import { SingleBar, Presets } from 'cli-progress';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import cliState from '../../cliState';
 import logger from '../../logger';
 import type { TestCase } from '../../types';

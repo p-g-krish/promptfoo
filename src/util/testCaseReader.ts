@@ -1,11 +1,11 @@
 import $RefParser from '@apidevtools/json-schema-ref-parser';
 import { parse as parseCsv } from 'csv-parse/sync';
 import dedent from 'dedent';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { globSync } from 'glob';
 import yaml from 'js-yaml';
-import * as path from 'path';
-import { parse as parsePath } from 'path';
+import * as path from 'node:path';
+import { parse as parsePath } from 'node:path';
 import { testCaseFromCsvRow } from '../csv';
 import { getEnvBool, getEnvString } from '../envars';
 import { importModule } from '../esm';

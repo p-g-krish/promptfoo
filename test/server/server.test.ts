@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import request from 'supertest';
 import logger from '../../src/logger';
 import { createApp, handleServerError, setJavaScriptMimeType } from '../../src/server/server';

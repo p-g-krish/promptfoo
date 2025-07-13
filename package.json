@@ -13,14 +13,8 @@
   "module": "./dist/index.js",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "workspaces": [
@@ -46,9 +40,9 @@
     "bin": "dist/main.js",
     "build:app": "npm run build --prefix src/app",
     "build:clean": "shx rm -rf dist",
-    "build:watch": "tsc --watch",
+    "build:watch": "tsup --watch",
     "build": "tsup",
-    "postbuild": "node scripts/fix-all-imports.mjs && node scripts/add-shebang.mjs && git checkout -- src/generated-constants.ts 2>/dev/null || true",
+    "postbuild": "git checkout -- src/generated-constants.ts 2>/dev/null || true",
     "citation:generate": "ts-node scripts/generateCitation.ts",
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx tsx src/migrate.ts",
@@ -73,10 +67,10 @@
     "postversion": "npm run citation:generate && git add CITATION.cff && git commit --amend --no-edit && gh pr create --repo promptfoo/promptfoo --title \"chore: bump version $npm_package_version\" --body \"\"",
     "prepublishOnly": "node -e \"if (!process.env.PROMPTFOO_POSTHOG_KEY) { console.error('Error: PROMPTFOO_POSTHOG_KEY must be set'); process.exit(1); }\" && npm run build:clean && npm run build",
     "test:app": "npm run test --prefix src/app",
-    "test:integration": "jest --config jest.integration.config.ts integration",
-    "test:watch": "jest --watch",
+    "test:integration": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.integration.config.ts integration",
+    "test:watch": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --watch",
     "test:redteam:integration": "npm run build && ./test/redteam/integration/test.sh",
-    "test": "jest",
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules\" jest",
     "tsc": "tsc"
   },
   "overrides": {
@@ -178,6 +172,7 @@
     "concurrently": "^9.2.0",
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.6",
+    "esbuild-plugin-file-path-extensions": "^2.1.4",
     "ibm-cloud-sdk-core": "^5.4.0",
     "jest": "^29.7.0",
     "knip": "^5.61.3",
@@ -205,17 +200,17 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.33.0",
-    "@swc/core-linux-x64-gnu": "^1.12.7",
-    "@swc/core-linux-x64-musl": "^1.12.7",
-    "@swc/core-win32-x64-msvc": "^1.12.7",
-    "@swc/core-darwin-x64": "^1.12.7",
-    "@swc/core-darwin-arm64": "^1.12.7",
+    "@biomejs/cli-darwin-arm64": "2.1.1",
+    "@biomejs/cli-darwin-x64": "2.1.1",
     "@biomejs/cli-linux-x64": "2.1.1",
     "@biomejs/cli-linux-x64-musl": "2.1.1",
     "@biomejs/cli-win32-x64": "2.1.1",
-    "@biomejs/cli-darwin-x64": "2.1.1",
-    "@biomejs/cli-darwin-arm64": "2.1.1"
+    "@rollup/rollup-linux-x64-gnu": "^4.33.0",
+    "@swc/core-darwin-arm64": "^1.12.7",
+    "@swc/core-darwin-x64": "^1.12.7",
+    "@swc/core-linux-x64-gnu": "^1.12.7",
+    "@swc/core-linux-x64-musl": "^1.12.7",
+    "@swc/core-win32-x64-msvc": "^1.12.7"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",

@@ -1,33 +1,16 @@
-import * as path from 'path';
-import logger from '../logger';
-
 export function getDirectory() {
   return '/test/dir';
 }
 
-export function importModule(filePath: string, functionName?: string) {
-  const resolvedPath = path.resolve(filePath);
-
-  logger.debug(
-    `Attempting to import module: ${JSON.stringify({ resolvedPath, moduleId: filePath })}`,
-  );
-
-  if (filePath.endsWith('.ts') || filePath.endsWith('.mjs')) {
-    logger.debug('TypeScript/ESM module detected, importing tsx/cjs');
-  }
-
+export async function importModule(filePath: string, functionName?: string) {
+  // Use require for test environment
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require(resolvedPath);
+  const mod = require(filePath);
 
   // Handle ES module default exports
-  const resolvedMod = mod?.default?.default || mod?.default || mod;
-
-  logger.debug(
-    `Successfully required module: ${JSON.stringify({ resolvedPath, moduleId: filePath })}`,
-  );
+  const resolvedMod = mod?.default || mod;
 
   if (functionName) {
-    logger.debug(`Returning named export: ${functionName}`);
     return resolvedMod[functionName];
   }
   return resolvedMod;

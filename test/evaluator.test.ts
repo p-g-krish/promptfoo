@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto';
-import fs from 'fs';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 import * as glob from 'glob';
 import { FILE_METADATA_KEY } from '../src/constants';
 import {
