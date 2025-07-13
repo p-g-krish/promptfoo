@@ -229,22 +229,22 @@ describe('Static file serving', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Create a more specific mock for esm module that returns a valid directory
     // We'll use the current directory which exists
     jest.doMock('../../src/esm', () => ({
       getDirectory: jest.fn().mockReturnValue(path.join(__dirname, '../..')),
       importModule: jest.fn(),
     }));
-    
+
     // Clear the module cache to ensure our mock is used
     jest.resetModules();
-    
+
     // Re-import createApp after mocking
     const { createApp: createAppFresh } = require('../../src/server/server');
     app = createAppFresh();
   });
-  
+
   afterEach(() => {
     jest.resetModules();
   });
@@ -254,7 +254,7 @@ describe('Static file serving', () => {
     // we'll just verify the route exists and returns 404 (file not found)
     // This is expected behavior in test environment
     const response = await request(app).get('/any/path');
-    
+
     // In test environment without actual static files, we expect a 404
     expect(response.status).toBe(404);
   });
