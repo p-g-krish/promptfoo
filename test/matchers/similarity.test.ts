@@ -115,14 +115,14 @@ describe('matchesSimilarity', () => {
         id: 'openai:embedding:text-embedding-ada-9999999',
         config: {
           apiKey: 'abc123',
-          temperature: 3.1415926,
+          temperature: Math.PI,
         },
       },
     };
 
     const mockCallApi = jest.spyOn(OpenAiEmbeddingProvider.prototype, 'callEmbeddingApi');
     mockCallApi.mockImplementation(function (this: OpenAiChatCompletionProvider) {
-      expect(this.config.temperature).toBe(3.1415926);
+      expect(this.config.temperature).toBe(Math.PI);
       expect(this.getApiKey()).toBe('abc123');
       return Promise.resolve({
         embedding: [1, 0, 0],
@@ -156,7 +156,7 @@ describe('matchesSimilarity', () => {
         id: 'openai:embedding:text-embedding-ada-9999999',
         config: {
           apiKey: 'abc123',
-          temperature: 3.1415926,
+          temperature: Math.PI,
         },
       },
     };

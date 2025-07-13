@@ -80,7 +80,7 @@ async function main() {
     .version(version)
     .showHelpAfterError()
     .showSuggestionAfterError()
-    .on('option:*', function () {
+    .on('option:*', () => {
       logger.error('Invalid option(s)');
       program.help();
       process.exitCode = 1;

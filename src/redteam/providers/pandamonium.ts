@@ -25,7 +25,7 @@ export const isPandamoniumProvider = (
     typeof provider === 'object' &&
     provider !== null &&
     'runPandamonium' in provider &&
-    typeof (provider as Record<string, unknown>)['runPandamonium'] === 'function'
+    typeof (provider as Record<string, unknown>).runPandamonium === 'function'
   );
 };
 

@@ -28,7 +28,7 @@ export async function fetchAimlApiModels(env?: EnvOverrides): Promise<AimlApiMod
     const apiKey = env?.AIML_API_KEY || getEnvString('AIML_API_KEY');
     const headers: Record<string, string> = {};
     if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+      headers.Authorization = `Bearer ${apiKey}`;
     }
 
     const { data } = await fetchWithCache<any>(

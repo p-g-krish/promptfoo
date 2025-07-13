@@ -24,8 +24,8 @@ export const handleJavascript = async ({
   output,
   inverse,
 }: AssertionParams): Promise<GradingResult> => {
-  let pass;
-  let score;
+  let pass: boolean | undefined;
+  let score: number | undefined;
   try {
     if (typeof assertion.value === 'function') {
       let ret = assertion.value(outputString, context);

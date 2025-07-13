@@ -1,5 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 import { useStore } from '@app/stores/evalConfig';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -11,6 +9,8 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import React, { useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import ConfigureEnvButton from './ConfigureEnvButton';
 import PromptsSection from './PromptsSection';
 import ProviderSelector from './ProviderSelector';
@@ -62,9 +62,10 @@ const EvaluateTestSuiteCreator: React.FC = () => {
     const varsSet = new Set<string>();
 
     prompts.forEach((prompt) => {
-      let match;
-      while ((match = varRegex.exec(prompt)) !== null) {
+      let match: RegExpExecArray | null = varRegex.exec(prompt);
+      while (match !== null) {
         varsSet.add(match[1]);
+        match = varRegex.exec(prompt);
       }
     });
 

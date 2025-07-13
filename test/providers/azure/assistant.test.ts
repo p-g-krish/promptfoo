@@ -584,10 +584,7 @@ describe('Azure Assistant Provider', () => {
 
       const originalFunction = global.Function;
       global.Function = jest.fn().mockImplementation(() => {
-        return () =>
-          async function (args: string) {
-            return 'string callback result';
-          };
+        return () => async (args: string) => 'string callback result';
       }) as any;
 
       await provider.callApi('test prompt');
@@ -1133,7 +1130,7 @@ describe('Azure Assistant Provider', () => {
 
   describe('makeRequest', () => {
     beforeEach(() => {
-      (provider as any).makeRequest = AzureAssistantProvider.prototype['makeRequest'];
+      (provider as any).makeRequest = AzureAssistantProvider.prototype.makeRequest;
       jest.mocked(fetchWithCache).mockClear();
     });
 
@@ -1298,7 +1295,7 @@ describe('Azure Assistant Provider', () => {
 
     it('should handle content filter errors in makeRequest', async () => {
       // Reset makeRequest to use the actual implementation
-      (provider as any).makeRequest = AzureAssistantProvider.prototype['makeRequest'];
+      (provider as any).makeRequest = AzureAssistantProvider.prototype.makeRequest;
 
       const errorResponse = {
         error: {

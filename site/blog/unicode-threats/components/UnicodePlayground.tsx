@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from '../styles/UnicodePlayground.module.css';
 
 // Define our invisible character mapping (same as the script)
@@ -97,7 +97,7 @@ const UnicodePlayground: React.FC = () => {
 
       setCopyStatus('Copied!');
       setTimeout(() => setCopyStatus(''), 2000);
-    } catch (err) {
+    } catch (_err) {
       setCopyStatus('Failed to copy');
       setTimeout(() => setCopyStatus(''), 2000);
     }

@@ -5,13 +5,13 @@ import { getDb } from '../database';
 import { updateSignalFile } from '../database/signal';
 import {
   datasetsTable,
+  evalResultsTable,
   evalsTable,
   evalsToDatasetsTable,
   evalsToPromptsTable,
+  evalsToTagsTable,
   promptsTable,
   tagsTable,
-  evalsToTagsTable,
-  evalResultsTable,
 } from '../database/tables';
 import { getEnvBool } from '../envars';
 import { getUserEmail } from '../globalConfig/accounts';
@@ -19,17 +19,17 @@ import logger from '../logger';
 import { hashPrompt } from '../prompts/utils';
 import {
   type CompletedPrompt,
+  type EvalSummary,
   type EvaluateResult,
   type EvaluateStats,
-  type EvaluateSummaryV3,
   type EvaluateSummaryV2,
+  type EvaluateSummaryV3,
   type EvaluateTable,
-  ResultFailureReason,
+  type EvaluateTableRow,
   type Prompt,
+  ResultFailureReason,
   type ResultsFile,
   type UnifiedConfig,
-  type EvalSummary,
-  type EvaluateTableRow,
 } from '../types';
 import { convertResultsToTable } from '../util/convertEvalResultsToTable';
 import { randomSequence, sha256 } from '../util/createHash';
@@ -50,45 +50,50 @@ export function createEvalId(createdAt: Date = new Date()) {
   return `eval-${randomSequence(3)}-${createdAt.toISOString().slice(0, 19)}`;
 }
 
-export class EvalQueries {
-  static async getVarsFromEvals(evals: Eval[]) {
-    const db = getDb();
-    const query = sql.raw(
-      `SELECT DISTINCT j.key, eval_id from (SELECT eval_id, json_extract(eval_results.test_case, '$.vars') as vars
+export async function getVarsFromEvals(evals: Eval[]) {
+  const db = getDb();
+  const query = sql.raw(
+    `SELECT DISTINCT j.key, eval_id from (SELECT eval_id, json_extract(eval_results.test_case, '$.vars') as vars
 FROM eval_results where eval_id IN (${evals.map((e) => `'${e.id}'`).join(',')})) t, json_each(t.vars) j;`,
-    );
-    // @ts-ignore
-    const results: { key: string; eval_id: string }[] = await db.all(query);
-    const vars = results.reduce((acc: Record<string, string[]>, r) => {
-      acc[r.eval_id] = acc[r.eval_id] || [];
-      acc[r.eval_id].push(r.key);
-      return acc;
-    }, {});
-    return vars;
-  }
+  );
+  // @ts-ignore
+  const results: { key: string; eval_id: string }[] = await db.all(query);
+  const vars = results.reduce((acc: Record<string, string[]>, r) => {
+    acc[r.eval_id] = acc[r.eval_id] || [];
+    acc[r.eval_id].push(r.key);
+    return acc;
+  }, {});
+  return vars;
+}
 
-  static async getVarsFromEval(evalId: string) {
-    const db = getDb();
-    const query = sql.raw(
-      `SELECT DISTINCT j.key from (SELECT json_extract(eval_results.test_case, '$.vars') as vars
+export async function getVarsFromEval(evalId: string) {
+  const db = getDb();
+  const query = sql.raw(
+    `SELECT DISTINCT j.key from (SELECT json_extract(eval_results.test_case, '$.vars') as vars
     FROM eval_results where eval_results.eval_id = '${evalId}') t, json_each(t.vars) j;`,
-    );
-    // @ts-ignore
-    const results: { key: string }[] = await db.all(query);
-    const vars = results.map((r) => r.key);
+  );
+  // @ts-ignore
+  const results: { key: string }[] = await db.all(query);
+  const vars = results.map((r) => r.key);
 
-    return vars;
-  }
+  return vars;
+}
 
-  static async setVars(evalId: string, vars: string[]) {
-    const db = getDb();
-    try {
-      await db.update(evalsTable).set({ vars }).where(eq(evalsTable.id, evalId)).run();
-    } catch (e) {
-      logger.error(`Error setting vars: ${vars} for eval ${evalId}: ${e}`);
-    }
+export async function setVars(evalId: string, vars: string[]) {
+  const db = getDb();
+  try {
+    await db.update(evalsTable).set({ vars }).where(eq(evalsTable.id, evalId)).run();
+  } catch (e) {
+    logger.error(`Error setting vars: ${vars} for eval ${evalId}: ${e}`);
   }
 }
+
+// Keep EvalQueries as a namespace for backward compatibility
+export const EvalQueries = {
+  getVarsFromEvals,
+  getVarsFromEval,
+  setVars,
+};
 
 export default class Eval {
   id: string;

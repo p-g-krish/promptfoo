@@ -140,17 +140,15 @@ export const handleTraceErrorSpans = ({ assertion, context }: AssertionParams): 
     pass = false;
     reason = `Error rate ${errorPercentage.toFixed(1)}% exceeds threshold ${maxPercentage}% `;
     reason += `(${errorCount} errors out of ${matchingSpans.length} spans)`;
+  } else if (errorCount === 0) {
+    reason = `No errors found in ${matchingSpans.length} spans matching pattern "${pattern}"`;
   } else {
-    if (errorCount === 0) {
-      reason = `No errors found in ${matchingSpans.length} spans matching pattern "${pattern}"`;
-    } else {
-      reason = `Found ${errorCount} error(s) in ${matchingSpans.length} spans (${errorPercentage.toFixed(1)}%)`;
-      if (maxCount !== undefined) {
-        reason += `, within threshold of ${maxCount}`;
-      }
-      if (maxPercentage !== undefined) {
-        reason += `, within threshold of ${maxPercentage}%`;
-      }
+    reason = `Found ${errorCount} error(s) in ${matchingSpans.length} spans (${errorPercentage.toFixed(1)}%)`;
+    if (maxCount !== undefined) {
+      reason += `, within threshold of ${maxCount}`;
+    }
+    if (maxPercentage !== undefined) {
+      reason += `, within threshold of ${maxPercentage}%`;
     }
   }
 

@@ -124,7 +124,7 @@ describe('OpenAI Provider', () => {
 
     it('constructor should handle config correctly', async () => {
       const config = {
-        temperature: 3.1415926,
+        temperature: Math.PI15926,
         max_tokens: 201,
       };
       const provider = new OpenAiChatCompletionProvider('gpt-4o-mini', { config });
@@ -146,7 +146,7 @@ describe('OpenAI Provider', () => {
       const call = mockFetchWithCache.mock.calls[0] as [string, { body: string }];
       const requestBody = JSON.parse(call[1].body);
       expect(requestBody).toMatchObject({
-        temperature: 3.1415926,
+        temperature: Math.PI15926,
         max_tokens: 201,
       });
       expect(provider.config.temperature).toBe(config.temperature);
@@ -1267,12 +1267,12 @@ Therefore, there are 2 occurrences of the letter "r" in "strawberry".\n\nThere a
       const o3StandardProvider = new OpenAiChatCompletionProvider('o3');
       const o4MiniProvider = new OpenAiChatCompletionProvider('o4-mini');
 
-      expect(regularProvider['isReasoningModel']()).toBe(false);
-      expect(o1Provider['isReasoningModel']()).toBe(true);
-      expect(o3Provider['isReasoningModel']()).toBe(true);
-      expect(o1PreviewProvider['isReasoningModel']()).toBe(true);
-      expect(o3StandardProvider['isReasoningModel']()).toBe(true);
-      expect(o4MiniProvider['isReasoningModel']()).toBe(true);
+      expect(regularProvider.isReasoningModel()).toBe(false);
+      expect(o1Provider.isReasoningModel()).toBe(true);
+      expect(o3Provider.isReasoningModel()).toBe(true);
+      expect(o1PreviewProvider.isReasoningModel()).toBe(true);
+      expect(o3StandardProvider.isReasoningModel()).toBe(true);
+      expect(o4MiniProvider.isReasoningModel()).toBe(true);
     });
 
     it('should handle temperature support correctly', () => {
@@ -1283,12 +1283,12 @@ Therefore, there are 2 occurrences of the letter "r" in "strawberry".\n\nThere a
       const o4MiniProvider = new OpenAiChatCompletionProvider('o4-mini');
       const gpt41Provider = new OpenAiChatCompletionProvider('gpt-4.1');
 
-      expect(regularProvider['supportsTemperature']()).toBe(true);
-      expect(o1Provider['supportsTemperature']()).toBe(false);
-      expect(o3Provider['supportsTemperature']()).toBe(false);
-      expect(o1PreviewProvider['supportsTemperature']()).toBe(false);
-      expect(o4MiniProvider['supportsTemperature']()).toBe(false);
-      expect(gpt41Provider['supportsTemperature']()).toBe(true);
+      expect(regularProvider.supportsTemperature()).toBe(true);
+      expect(o1Provider.supportsTemperature()).toBe(false);
+      expect(o3Provider.supportsTemperature()).toBe(false);
+      expect(o1PreviewProvider.supportsTemperature()).toBe(false);
+      expect(o4MiniProvider.supportsTemperature()).toBe(false);
+      expect(gpt41Provider.supportsTemperature()).toBe(true);
     });
 
     it('should respect temperature settings based on model type', async () => {

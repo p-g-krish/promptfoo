@@ -1,6 +1,6 @@
 import { filterTests } from '../../../src/commands/eval/filterTests';
 import Eval from '../../../src/models/eval';
-import type { TestSuite, TestCase } from '../../../src/types';
+import type { TestCase, TestSuite } from '../../../src/types';
 import { ResultFailureReason } from '../../../src/types';
 
 jest.mock('../../../src/models/eval', () => ({
@@ -37,7 +37,7 @@ describe('filterTests', () => {
     jest.resetAllMocks();
     const mockEval = {
       id: 'eval-123',
-      createdAt: new Date().getTime(),
+      createdAt: Date.now(),
       config: {},
       results: [],
       resultsCount: 0,

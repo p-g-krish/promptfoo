@@ -1,6 +1,6 @@
 import { AssertionsResult, DEFAULT_TOKENS_USED } from '../../src/assertions/assertionsResult';
 import { getEnvBool } from '../../src/envars';
-import type { GradingResult, AssertionSet } from '../../src/types';
+import type { AssertionSet, GradingResult } from '../../src/types';
 
 jest.mock('../../src/envars');
 
@@ -45,15 +45,15 @@ describe('AssertionsResult', () => {
         weight: 2,
       });
 
-      expect(assertionsResult['totalScore']).toBe(1.6); // 0.8 * 2
-      expect(assertionsResult['totalWeight']).toBe(2);
-      expect(assertionsResult['tokensUsed']).toEqual({
+      expect(assertionsResult.totalScore).toBe(1.6); // 0.8 * 2
+      expect(assertionsResult.totalWeight).toBe(2);
+      expect(assertionsResult.tokensUsed).toEqual({
         total: 100,
         prompt: 50,
         completion: 50,
         cached: 0,
       });
-      expect(assertionsResult['namedScores']).toEqual({
+      expect(assertionsResult.namedScores).toEqual({
         accuracy: 0.8,
       });
     });
@@ -73,7 +73,7 @@ describe('AssertionsResult', () => {
         result,
       });
 
-      expect(assertionsResult['failedReason']).toBe('Test failed');
+      expect(assertionsResult.failedReason).toBe('Test failed');
     });
 
     it('should throw error if short circuit enabled', () => {

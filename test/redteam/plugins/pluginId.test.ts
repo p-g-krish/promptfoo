@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  ADDITIONAL_PLUGINS,
   ALL_PLUGINS,
   BASE_PLUGINS,
-  ADDITIONAL_PLUGINS,
+  BIAS_PLUGINS,
   CONFIG_REQUIRED_PLUGINS,
   HARM_PLUGINS,
   PII_PLUGINS,
-  BIAS_PLUGINS,
 } from '../../../src/redteam/constants';
 
 describe('Plugin IDs', () => {
@@ -15,8 +15,12 @@ describe('Plugin IDs', () => {
     // Look for patterns like `id = 'plugin-name'` or `PLUGIN_ID = 'plugin-name'`
     const idAssignmentRegex = /\b(id|PLUGIN_ID)\s*=\s*['"]([^'"]+)['"]/g;
     const matches = [];
-    let match;
-    while ((match = idAssignmentRegex.exec(fileContent)) !== null) {
+    let match: RegExpExecArray | null;
+    while (true) {
+      match = idAssignmentRegex.exec(fileContent);
+      if (match === null) {
+        break;
+      }
       matches.push(match[2]);
     }
     return matches;

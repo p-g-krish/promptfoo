@@ -39,9 +39,9 @@ describe('Groq', () => {
       const deepseekProvider = new GroqProvider('deepseek-r1-distill-llama-70b', {});
       const o1Provider = new GroqProvider('o1-mini', {});
 
-      expect(regularProvider['isReasoningModel']()).toBe(false);
-      expect(deepseekProvider['isReasoningModel']()).toBe(true);
-      expect(o1Provider['isReasoningModel']()).toBe(true);
+      expect(regularProvider.isReasoningModel()).toBe(false);
+      expect(deepseekProvider.isReasoningModel()).toBe(true);
+      expect(o1Provider.isReasoningModel()).toBe(true);
     });
 
     it('should handle temperature support correctly', () => {
@@ -49,9 +49,9 @@ describe('Groq', () => {
       const deepseekProvider = new GroqProvider('deepseek-r1-distill-llama-70b', {});
       const o1Provider = new GroqProvider('o1-mini', {});
 
-      expect(regularProvider['supportsTemperature']()).toBe(true);
-      expect(deepseekProvider['supportsTemperature']()).toBe(true);
-      expect(o1Provider['supportsTemperature']()).toBe(false);
+      expect(regularProvider.supportsTemperature()).toBe(true);
+      expect(deepseekProvider.supportsTemperature()).toBe(true);
+      expect(o1Provider.supportsTemperature()).toBe(false);
     });
 
     it('should serialize to JSON correctly without API key', () => {
@@ -93,7 +93,7 @@ describe('Groq', () => {
           apiBaseUrl: GROQ_API_BASE,
         },
       });
-      expect(provider['apiKey']).toBe('secret-api-key');
+      expect(provider.apiKey).toBe('secret-api-key');
     });
 
     it('should handle configuration options correctly', () => {

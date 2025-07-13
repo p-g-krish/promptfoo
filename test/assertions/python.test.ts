@@ -260,7 +260,7 @@ describe('Python file references', () => {
       const output =
         'This is a string with "double quotes"\n and \'single quotes\' \n\n and some \n\t newlines.';
 
-      let resolvedValue;
+      let resolvedValue: any;
       if (type === 'GradingResult') {
         resolvedValue = JSON.parse(returnValue as string);
       } else {

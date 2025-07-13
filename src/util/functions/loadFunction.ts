@@ -5,7 +5,7 @@ import logger from '../../logger';
 import { runPython } from '../../python/pythonUtils';
 import { isJavascriptFile, JAVASCRIPT_EXTENSIONS } from '../fileExtensions';
 
-export const functionCache: Record<string, Function> = {};
+export const functionCache: Record<string, (...args: any[]) => any> = {};
 
 interface LoadFunctionOptions {
   filePath: string;
@@ -20,7 +20,7 @@ interface LoadFunctionOptions {
  * @param options Options for loading the function
  * @returns The loaded function
  */
-export async function loadFunction<T extends Function>({
+export async function loadFunction<T extends (...args: any[]) => any>({
   filePath,
   functionName,
   defaultFunctionName = 'func',

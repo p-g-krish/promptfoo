@@ -81,7 +81,7 @@ describe('RedteamIterativeProvider', () => {
 
     it('should use default numIterations if not provided', () => {
       const provider = new RedteamIterativeProvider({ injectVar: 'test' });
-      expect(provider['numIterations']).toBe(4);
+      expect(provider.numIterations).toBe(4);
     });
 
     it('should use configured numIterations when provided', () => {
@@ -90,13 +90,13 @@ describe('RedteamIterativeProvider', () => {
         numIterations: '5',
       });
       // The environment variable takes precedence
-      expect(provider['numIterations']).toBe(4);
+      expect(provider.numIterations).toBe(4);
     });
 
     it('should use environment variable for numIterations if set', () => {
       process.env.PROMPTFOO_NUM_JAILBREAK_ITERATIONS = '15';
       const provider = new RedteamIterativeProvider({ injectVar: 'test' });
-      expect(provider['numIterations']).toBe(15);
+      expect(provider.numIterations).toBe(15);
       delete process.env.PROMPTFOO_NUM_JAILBREAK_ITERATIONS;
     });
   });

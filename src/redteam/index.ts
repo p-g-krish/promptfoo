@@ -258,7 +258,7 @@ async function applyStrategies(
   for (const strategy of strategies) {
     logger.debug(`Generating ${strategy.id} tests`);
 
-    let strategyAction;
+    let strategyAction: any;
     if (strategy.id.startsWith('file://')) {
       const loadedStrategy = await loadStrategy(strategy.id);
       strategyAction = loadedStrategy.action;

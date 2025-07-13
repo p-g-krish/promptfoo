@@ -1,5 +1,4 @@
 import { Editor } from '@monaco-editor/react';
-import React, { useState } from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Box from '@mui/material/Box';
@@ -9,6 +8,7 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { dump as yamlDump } from 'js-yaml';
+import { useState } from 'react';
 
 interface HttpConfigGeneratorProps {
   className?: string;

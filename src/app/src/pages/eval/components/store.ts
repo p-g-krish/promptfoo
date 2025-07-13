@@ -4,12 +4,12 @@ import type { VisibilityState } from '@tanstack/table-core';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
+  EvalTableDTO,
   EvaluateSummaryV2,
   EvaluateTable,
+  FilterMode,
   ResultsFile,
   UnifiedConfig,
-  FilterMode,
-  EvalTableDTO,
 } from './types';
 
 function computeHighlightCount(table: EvaluateTable | null): number {

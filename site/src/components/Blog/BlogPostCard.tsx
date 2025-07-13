@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from '@docusaurus/Link';
 import type { PropBlogPostContent } from '@docusaurus/plugin-content-blog';
 import styles from './BlogPostCard.module.css';

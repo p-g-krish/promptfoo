@@ -61,18 +61,19 @@ const directories = [
   '/var/yp',
 ];
 
-class FakeSystemDataFactory {
-  static directoryPath() {
+const FakeSystemDataFactory = {
+  directoryPath() {
     // Select a random number of directories
     const numDirs = Math.floor(Math.random() * 3) + 1;
     const dirs = directories.slice(0, numDirs);
     return dirs.join('/');
-  }
-}
+  },
+};
 
 /**
  * A factory for generating fake data modeled on fakerjs.
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: This mimics the faker.js API structure
 class FakeDataFactory {
   static system = FakeSystemDataFactory;
 }

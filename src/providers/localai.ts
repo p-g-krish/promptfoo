@@ -3,7 +3,7 @@ import { getEnvFloat, getEnvString } from '../envars';
 import logger from '../logger';
 import type { ApiProvider, ProviderEmbeddingResponse, ProviderResponse } from '../types';
 import type { EnvOverrides } from '../types/env';
-import { REQUEST_TIMEOUT_MS, parseChatPrompt } from './shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS } from './shared';
 
 interface LocalAiCompletionOptions {
   apiBaseUrl?: string;
@@ -54,7 +54,7 @@ export class LocalAiChatProvider extends LocalAiGenericProvider {
     };
     logger.debug(`Calling LocalAI API: ${JSON.stringify(body)}`);
 
-    let data;
+    let data: any;
     try {
       ({ data } = (await fetchWithCache(
         `${this.apiBaseUrl}/chat/completions`,
@@ -91,7 +91,7 @@ export class LocalAiEmbeddingProvider extends LocalAiGenericProvider {
       input: text,
       model: this.modelName,
     };
-    let data;
+    let data: any;
     try {
       ({ data } = (await fetchWithCache(
         `${this.apiBaseUrl}/embeddings`,
@@ -136,7 +136,7 @@ export class LocalAiCompletionProvider extends LocalAiGenericProvider {
     };
     logger.debug(`Calling LocalAI API: ${JSON.stringify(body)}`);
 
-    let data;
+    let data: any;
     try {
       ({ data } = (await fetchWithCache(
         `${this.apiBaseUrl}/completions`,

@@ -1,11 +1,10 @@
 import path from 'path';
 import { loadFromJavaScriptFile } from './assertions/utils';
 import cliState from './cliState';
-import { getEnvString, getEnvBool } from './envars';
+import { getEnvBool, getEnvString } from './envars';
 import logger from './logger';
 import {
   ANSWER_RELEVANCY_GENERATE,
-  SELECT_BEST_PROMPT,
   CONTEXT_FAITHFULNESS_LONGFORM,
   CONTEXT_FAITHFULNESS_NLI_STATEMENTS,
   CONTEXT_RECALL,
@@ -13,10 +12,11 @@ import {
   CONTEXT_RELEVANCE,
   CONTEXT_RELEVANCE_BAD,
   DEFAULT_GRADING_PROMPT,
+  GEVAL_PROMPT_EVALUATE,
+  GEVAL_PROMPT_STEPS,
   OPENAI_CLOSED_QA_PROMPT,
   PROMPTFOO_FACTUALITY_PROMPT,
-  GEVAL_PROMPT_STEPS,
-  GEVAL_PROMPT_EVALUATE,
+  SELECT_BEST_PROMPT,
 } from './prompts';
 import { loadApiProvider } from './providers';
 import { getDefaultProviders } from './providers/defaults';
@@ -41,7 +41,7 @@ import type {
 import { maybeLoadFromExternalFile } from './util/file';
 import { isJavascriptFile } from './util/fileExtensions';
 import invariant from './util/invariant';
-import { extractJsonObjects, extractFirstJsonObject } from './util/json';
+import { extractFirstJsonObject, extractJsonObjects } from './util/json';
 import { getNunjucksEngine } from './util/templates';
 
 class LlmRubricProviderError extends Error {
@@ -351,7 +351,7 @@ export async function matchesClassification(
   if (!resp.classification) {
     return fail(resp.error || 'Unknown error fetching classification');
   }
-  let score;
+  let score: number;
   if (expected === undefined) {
     score = Math.max(...Object.values(resp.classification));
   } else {
@@ -794,7 +794,7 @@ export async function matchesClosedQa(
   invariant(typeof resp.output === 'string', 'model-graded-closedqa produced malformed response');
   try {
     const pass = resp.output.trimEnd().endsWith('Y');
-    let reason;
+    let reason: string;
     if (pass) {
       reason = 'The submission meets the criterion';
     } else if (resp.output.trimEnd().endsWith('N')) {
@@ -857,14 +857,14 @@ export async function matchesGEval(
   // Step 1: Get evaluation steps using renderLlmRubricPrompt
   const stepsRubricPrompt =
     typeof grading?.rubricPrompt === 'object' && !Array.isArray(grading?.rubricPrompt)
-      ? grading?.rubricPrompt?.['steps']
+      ? grading?.rubricPrompt?.steps
       : undefined;
   const stepsPrompt = await loadRubricPrompt(stepsRubricPrompt, GEVAL_PROMPT_STEPS);
   const promptSteps = await renderLlmRubricPrompt(stepsPrompt, { criteria });
 
   const respSteps = await textProvider.callApi(promptSteps);
   accumulateTokens(tokensUsed, respSteps.tokenUsage);
-  let steps;
+  let steps: any;
 
   try {
     // NOTE: use regexp for reliable, because sometimes LLM wraps response to markdown format ```json...```
@@ -883,7 +883,7 @@ export async function matchesGEval(
   // Step 2: Use steps to evaluate using renderLlmRubricPrompt
   const evalRubricPrompt =
     typeof grading?.rubricPrompt === 'object' && !Array.isArray(grading?.rubricPrompt)
-      ? grading?.rubricPrompt?.['evaluate']
+      ? grading?.rubricPrompt?.evaluate
       : undefined;
   const evalPrompt = await loadRubricPrompt(evalRubricPrompt, GEVAL_PROMPT_EVALUATE);
   const promptText = await renderLlmRubricPrompt(evalPrompt, {
@@ -896,7 +896,7 @@ export async function matchesGEval(
 
   const resp = await textProvider.callApi(promptText);
   accumulateTokens(tokensUsed, resp.tokenUsage);
-  let result;
+  let result: any;
 
   try {
     result = JSON.parse(resp.output.match(/\{.+\}/g)[0]);

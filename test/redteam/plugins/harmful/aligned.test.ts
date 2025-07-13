@@ -58,13 +58,13 @@ describe('AlignedHarmfulPlugin', () => {
 
   describe('template handling', () => {
     it('should retrieve correct template for harm category', async () => {
-      const template = await plugin['getTemplate']();
+      const template = await plugin.getTemplate();
       expect(template).toBe('test prompt template {{ examples }}');
     });
 
     it('should throw when category config is not found', async () => {
       jest.spyOn(REDTEAM_MODEL_CATEGORIES, 'find').mockReturnValue(undefined);
-      await expect(plugin['getTemplate']()).rejects.toThrow(
+      await expect(plugin.getTemplate()).rejects.toThrow(
         `Harmful category ${harmCategory} not found`,
       );
     });
@@ -72,7 +72,7 @@ describe('AlignedHarmfulPlugin', () => {
 
   describe('assertion generation', () => {
     it('should generate harmful assertions for given prompt', () => {
-      const assertions = plugin['getAssertions']('test prompt');
+      const assertions = plugin.getAssertions('test prompt');
       expect(assertions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -83,7 +83,7 @@ describe('AlignedHarmfulPlugin', () => {
     });
 
     it('should include harm category in assertions', () => {
-      const assertions = plugin['getAssertions']('test prompt');
+      const assertions = plugin.getAssertions('test prompt');
       assertions.forEach((assertion) => {
         expect(assertion).toHaveProperty('metric');
         expect(assertion.metric).toBe('Harmful');
@@ -95,7 +95,7 @@ describe('AlignedHarmfulPlugin', () => {
     const mockPrompts = [{ prompt: 'Test prompt 1' }, { prompt: 'Test prompt 2' }];
 
     it('should create properly structured test cases', () => {
-      const testCases = plugin['promptsToTestCases'](mockPrompts);
+      const testCases = plugin.promptsToTestCases(mockPrompts);
 
       expect(testCases).toHaveLength(2);
       testCases.forEach((testCase) => {
@@ -116,7 +116,7 @@ describe('AlignedHarmfulPlugin', () => {
     });
 
     it('should handle empty prompts array', () => {
-      const testCases = plugin['promptsToTestCases']([]);
+      const testCases = plugin.promptsToTestCases([]);
       expect(testCases).toHaveLength(0);
     });
   });

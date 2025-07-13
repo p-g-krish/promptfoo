@@ -49,7 +49,7 @@ import { safeJsonStringify, summarizeEvaluateResultForLogging } from './util/jso
 import { promptYesNo } from './util/readline';
 import { sleep } from './util/time';
 import { TokenUsageTracker } from './util/tokenUsage';
-import { transform, type TransformContext, TransformInputType } from './util/transform';
+import { type TransformContext, TransformInputType, transform } from './util/transform';
 
 export const DEFAULT_MAX_CONCURRENCY = 4;
 
@@ -233,7 +233,7 @@ export async function runEval({
   try {
     // Render the prompt
     const renderedPrompt = await renderPrompt(prompt, vars, filters, provider);
-    let renderedJson = undefined;
+    let renderedJson: any;
     try {
       renderedJson = JSON.parse(renderedPrompt);
     } catch {}
@@ -300,7 +300,7 @@ export async function runEval({
     const endTime = Date.now();
     latencyMs = endTime - startTime;
 
-    let conversationLastInput = undefined;
+    let conversationLastInput: any;
     if (renderedJson && Array.isArray(renderedJson)) {
       const lastElt = renderedJson[renderedJson.length - 1];
       // Use the `content` field if present (OpenAI chat format)
@@ -1427,7 +1427,7 @@ class Evaluator {
     // Do we have to run comparisons between row outputs?
     const compareRowsCount = rowsWithSelectBestAssertion.size;
 
-    let progressBar;
+    let progressBar: any;
     if (compareRowsCount > 0 && multibar && !isWebUI) {
       progressBar = multibar.create(compareRowsCount, 0, {
         provider: 'Running model-graded comparisons',

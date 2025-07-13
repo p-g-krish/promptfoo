@@ -69,7 +69,7 @@ export class LlamaProvider implements ApiProvider {
 
     logger.debug(`[llama] Calling API at ${url} with body ${JSON.stringify(body)}`);
 
-    let response;
+    let response: any;
     try {
       response = await fetchWithCache(
         `${url}/completion`,

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getCache, isCacheEnabled } from '../../cache';
-import { getEnvString, getEnvInt, getEnvFloat } from '../../envars';
+import { getEnvFloat, getEnvInt, getEnvString } from '../../envars';
 import logger from '../../logger';
 import type { ProviderResponse } from '../../types';
 import type { EnvOverrides } from '../../types/env';
@@ -71,7 +71,7 @@ export class AnthropicCompletionProvider extends AnthropicGenericProvider {
       }
     }
 
-    let response;
+    let response: any;
     try {
       response = await this.anthropic.completions.create(params);
     } catch (err) {

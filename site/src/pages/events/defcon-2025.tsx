@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
 import Head from '@docusaurus/Head';
 import Link from '@docusaurus/Link';
 import Layout from '@theme/Layout';
+import React, { useEffect } from 'react';
 import styles from './defcon-2025.module.css';
 
 export default function Defcon2025(): JSX.Element {

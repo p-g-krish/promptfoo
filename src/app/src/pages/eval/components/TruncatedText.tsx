@@ -68,7 +68,7 @@ function TruncatedText({ text: rawText, maxLength }: TruncatedTextProps) {
     return node;
   };
 
-  let text;
+  let text: React.ReactNode;
   if (React.isValidElement(rawText) || typeof rawText === 'string') {
     text = rawText;
   } else {

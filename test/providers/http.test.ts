@@ -1149,7 +1149,7 @@ describe('HttpProvider', () => {
   describe('getDefaultHeaders', () => {
     it('should return empty object for GET requests', () => {
       const provider = new HttpProvider(mockUrl, { config: { method: 'GET' } });
-      const result = provider['getDefaultHeaders'](null);
+      const result = provider.getDefaultHeaders(null);
       expect(result).toEqual({});
     });
 
@@ -1157,13 +1157,13 @@ describe('HttpProvider', () => {
       const provider = new HttpProvider(mockUrl, {
         config: { method: 'POST', body: { key: 'value' } },
       });
-      const result = provider['getDefaultHeaders']({ key: 'value' });
+      const result = provider.getDefaultHeaders({ key: 'value' });
       expect(result).toEqual({ 'content-type': 'application/json' });
     });
 
     it('should return application/x-www-form-urlencoded for string body', () => {
       const provider = new HttpProvider(mockUrl, { config: { method: 'POST', body: 'test' } });
-      const result = provider['getDefaultHeaders']('string body');
+      const result = provider.getDefaultHeaders('string body');
       expect(result).toEqual({ 'content-type': 'application/x-www-form-urlencoded' });
     });
   });
@@ -1172,7 +1172,7 @@ describe('HttpProvider', () => {
     it('should not throw for valid content-type and body', () => {
       const provider = new HttpProvider(mockUrl, { config: { body: 'test' } });
       expect(() => {
-        provider['validateContentTypeAndBody'](
+        provider.validateContentTypeAndBody(
           { 'content-type': 'application/json' },
           { key: 'value' },
         );
@@ -1182,7 +1182,7 @@ describe('HttpProvider', () => {
     it('should throw for non-json content-type with object body', () => {
       const provider = new HttpProvider(mockUrl, { config: { body: 'test' } });
       expect(() => {
-        provider['validateContentTypeAndBody'](
+        provider.validateContentTypeAndBody(
           { 'content-type': 'application/x-www-form-urlencoded' },
           { key: 'value' },
         );

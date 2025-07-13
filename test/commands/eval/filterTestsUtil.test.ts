@@ -1,6 +1,6 @@
 import { filterTestsByResults } from '../../../src/commands/eval/filterTestsUtil';
 import Eval from '../../../src/models/eval';
-import type { TestSuite, EvaluateResult, Prompt, ProviderResponse } from '../../../src/types';
+import type { EvaluateResult, Prompt, ProviderResponse, TestSuite } from '../../../src/types';
 import { ResultFailureReason } from '../../../src/types';
 import * as util from '../../../src/util';
 
@@ -323,7 +323,7 @@ describe('filterTestsUtil', () => {
       beforeEach(() => {
         const mockEval = {
           id: 'eval-123',
-          createdAt: new Date().getTime(),
+          createdAt: Date.now(),
           config: {},
           results: [],
           resultsCount: 0,
@@ -374,7 +374,7 @@ describe('filterTestsUtil', () => {
       it('should return empty array if eval has no results', async () => {
         const mockEval = {
           id: 'eval-123',
-          createdAt: new Date().getTime(),
+          createdAt: Date.now(),
           config: {},
           results: [],
           resultsCount: 0,
@@ -401,7 +401,7 @@ describe('filterTestsUtil', () => {
       it('should return empty array if eval has no results property', async () => {
         const mockEval = {
           id: 'eval-123',
-          createdAt: new Date().getTime(),
+          createdAt: Date.now(),
           config: {},
           results: [],
           resultsCount: 0,

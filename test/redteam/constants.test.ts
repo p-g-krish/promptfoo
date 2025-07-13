@@ -6,10 +6,10 @@ import {
   ALL_PLUGINS,
   ALL_STRATEGIES,
   BASE_PLUGINS,
-  categoryAliases,
-  categoryDescriptions,
   COLLECTIONS,
   CONFIG_REQUIRED_PLUGINS,
+  categoryAliases,
+  categoryDescriptions,
   DATASET_EXEMPT_PLUGINS,
   DATASET_PLUGINS,
   DEFAULT_NUM_TESTS_PER_PLUGIN,
@@ -19,17 +19,16 @@ import {
   LLAMA_GUARD_ENABLED_CATEGORIES,
   LLAMA_GUARD_REPLICATE_PROVIDER,
   PII_PLUGINS,
-  PLUGIN_PRESET_DESCRIPTIONS,
   pluginDescriptions,
   REDTEAM_MODEL,
   REDTEAM_PROVIDER_HARM_PLUGINS,
   riskCategories,
   riskCategorySeverityMap,
   Severity,
-  severityDisplayNames,
   STRATEGY_COLLECTION_MAPPINGS,
   STRATEGY_COLLECTIONS,
   STRATEGY_EXEMPT_PLUGINS,
+  severityDisplayNames,
   strategyDescriptions,
   strategyDisplayNames,
   subCategoryDescriptions,
@@ -197,25 +196,25 @@ describe('constants', () => {
   });
 
   it('should have correct display name for MCP plugin', () => {
-    expect(displayNameOverrides['mcp']).toBe('Model Context Protocol');
+    expect(displayNameOverrides.mcp).toBe('Model Context Protocol');
   });
 
   it('should have correct severity for MCP plugin', () => {
-    expect(riskCategorySeverityMap['mcp']).toBe(Severity.High);
+    expect(riskCategorySeverityMap.mcp).toBe(Severity.High);
   });
 
   it('should have correct alias for MCP plugin', () => {
-    expect(categoryAliases['mcp']).toBe('MCP');
+    expect(categoryAliases.mcp).toBe('MCP');
   });
 
   it('should have correct plugin description for MCP plugin', () => {
-    expect(pluginDescriptions['mcp']).toBe(
+    expect(pluginDescriptions.mcp).toBe(
       'Tests for vulnerabilities to Model Context Protocol (MCP) attacks',
     );
   });
 
   it('should have correct subcategory description for MCP plugin', () => {
-    expect(subCategoryDescriptions['mcp']).toBe(
+    expect(subCategoryDescriptions.mcp).toBe(
       'Tests for vulnerabilities to Model Context Protocol (MCP) attacks',
     );
   });
@@ -246,11 +245,11 @@ describe('constants', () => {
   });
 
   it('should have correct display name for emoji strategy', () => {
-    expect(strategyDisplayNames['emoji']).toBe('Emoji Smuggling');
+    expect(strategyDisplayNames.emoji).toBe('Emoji Smuggling');
   });
 
   it('should have correct strategy description for emoji strategy', () => {
-    expect(strategyDescriptions['emoji']).toBe(
+    expect(strategyDescriptions.emoji).toBe(
       'Tests detection and handling of UTF-8 payloads hidden inside emoji variation selectors',
     );
   });
@@ -260,7 +259,7 @@ describe('constants', () => {
   });
 
   it('should have correct subcategory description for emoji strategy', () => {
-    expect(subCategoryDescriptions['emoji']).toBe(
+    expect(subCategoryDescriptions.emoji).toBe(
       'Tests handling of text hidden using emoji variation selectors',
     );
   });

@@ -7,8 +7,12 @@ describe('Strategy IDs', () => {
     // Look for patterns like `strategyId: 'strategy-name'`
     const regex = /strategyId:\s*['"]([^'"]+)['"]/g;
     const matches = [];
-    let match;
-    while ((match = regex.exec(fileContent)) !== null) {
+    let match: RegExpExecArray | null;
+    while (true) {
+      match = regex.exec(fileContent);
+      if (match === null) {
+        break;
+      }
       matches.push(match[1]);
     }
     return matches;

@@ -115,7 +115,7 @@ describe('PythonProvider with file references', () => {
       config: mockConfig,
     });
 
-    provider['isInitialized'] = false;
+    provider.isInitialized = false;
 
     await expect(provider.initialize()).rejects.toThrow('Failed to load file');
 
@@ -123,7 +123,7 @@ describe('PythonProvider with file references', () => {
       expect.objectContaining(mockConfig),
       expect.any(String),
     );
-    expect(provider['isInitialized']).toBeFalsy();
+    expect(provider.isInitialized).toBeFalsy();
   });
 
   it('should process config references before calling API', async () => {
@@ -145,15 +145,15 @@ describe('PythonProvider with file references', () => {
       },
     });
 
-    provider['isInitialized'] = false;
+    provider.isInitialized = false;
 
     const mockResult = { output: 'API result', cached: false };
-    const _originalMethod = provider['executePythonScript'];
+    const _originalMethod = provider.executePythonScript;
     const executePythonScriptMock = jest.fn((prompt, context, apiType) =>
       Promise.resolve(mockResult),
     );
 
-    provider['executePythonScript'] = executePythonScriptMock;
+    provider.executePythonScript = executePythonScriptMock;
 
     jest.mocked(runPython).mockResolvedValue({ output: 'API result' });
 
@@ -184,7 +184,7 @@ describe('PythonProvider with file references', () => {
       },
     });
 
-    provider['isInitialized'] = false;
+    provider.isInitialized = false;
 
     await provider.initialize();
     await provider.initialize();
@@ -214,7 +214,7 @@ describe('PythonProvider with file references', () => {
       },
     });
 
-    provider['isInitialized'] = false;
+    provider.isInitialized = false;
 
     const runPythonMock = jest.mocked(runPython);
     runPythonMock.mockClear();
@@ -246,7 +246,7 @@ describe('PythonProvider with file references', () => {
       },
     });
 
-    provider['isInitialized'] = false;
+    provider.isInitialized = false;
 
     const runPythonMock = jest.mocked(runPython);
     runPythonMock.mockClear();

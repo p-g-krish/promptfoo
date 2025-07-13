@@ -8,7 +8,7 @@ import type {
   ProviderResponse,
 } from '../types';
 import { maybeLoadToolsFromExternalFile } from '../util';
-import { REQUEST_TIMEOUT_MS, parseChatPrompt } from './shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS } from './shared';
 
 interface OllamaCompletionOptions {
   // From https://github.com/jmorganca/ollama/blob/v0.1.0/api/types.go#L161
@@ -161,7 +161,7 @@ export class OllamaCompletionProvider implements ApiProvider {
     };
 
     logger.debug(`Calling Ollama API: ${JSON.stringify(params)}`);
-    let response;
+    let response: any;
     try {
       response = await fetchWithCache(
         `${getEnvString('OLLAMA_BASE_URL') || 'http://localhost:11434'}/api/generate`,
@@ -260,7 +260,7 @@ export class OllamaChatProvider implements ApiProvider {
     }
 
     logger.debug(`Calling Ollama API: ${JSON.stringify(params)}`);
-    let response;
+    let response: any;
     try {
       response = await fetchWithCache(
         `${getEnvString('OLLAMA_BASE_URL') || 'http://localhost:11434'}/api/chat`,
@@ -323,7 +323,7 @@ export class OllamaEmbeddingProvider extends OllamaCompletionProvider {
     };
 
     logger.debug(`Calling Ollama API: ${JSON.stringify(params)}`);
-    let response;
+    let response: any;
     try {
       response = await fetchWithCache(
         `${getEnvString('OLLAMA_BASE_URL') || 'http://localhost:11434'}/api/embeddings`,

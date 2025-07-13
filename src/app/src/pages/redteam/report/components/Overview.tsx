@@ -1,16 +1,16 @@
-import React from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import {
+  type Plugin as PluginType,
   Severity,
   severityDisplayNames,
-  type Plugin as PluginType,
 } from '@promptfoo/redteam/constants';
 import { getRiskCategorySeverityMap } from '@promptfoo/redteam/sharedFrontend';
 import type { RedteamPluginObject } from '@promptfoo/redteam/types';
+import React from 'react';
 import { useReportStore } from './store';
 import './Overview.css';
 
@@ -81,7 +81,9 @@ const Overview: React.FC<OverviewProps> = ({ categoryStats, plugins }) => {
         <Box key={severity} flex={1}>
           <Card className={`severity-card card-${severity.toLowerCase()}`}>
             <CardContent
-              onClick={() => (window.location.hash = '#table')}
+              onClick={() => {
+                window.location.hash = '#table';
+              }}
               sx={[
                 {
                   backgroundColor: BACKGROUND_COLORS[severity],

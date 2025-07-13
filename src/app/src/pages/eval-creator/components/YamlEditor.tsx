@@ -1,6 +1,3 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Editor from 'react-simple-code-editor';
 import { useStore } from '@app/stores/evalConfig';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
@@ -10,13 +7,16 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Snackbar from '@mui/material/Snackbar';
+import { useTheme } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import { useTheme } from '@mui/material/styles';
 import { styled } from '@mui/system';
 import yaml from 'js-yaml';
 // @ts-expect-error: No types available
 import { highlight, languages } from 'prismjs/components/prism-core';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import Editor from 'react-simple-code-editor';
 import 'prismjs/components/prism-yaml';
 import './YamlEditor.css';
 import 'prismjs/themes/prism.css';

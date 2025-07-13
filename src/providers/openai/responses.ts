@@ -1,4 +1,3 @@
-import { OpenAiGenericProvider } from '.';
 import { fetchWithCache } from '../../cache';
 import { getEnvFloat, getEnvInt, getEnvString } from '../../envars';
 import logger from '../../logger';
@@ -7,9 +6,9 @@ import type { EnvOverrides } from '../../types/env';
 import { maybeLoadToolsFromExternalFile, renderVarsInObject } from '../../util';
 import { maybeLoadFromExternalFile } from '../../util/file';
 import { REQUEST_TIMEOUT_MS } from '../shared';
+import { OpenAiGenericProvider } from '.';
 import type { OpenAiCompletionOptions, ReasoningEffort } from './types';
-import { calculateOpenAICost } from './util';
-import { formatOpenAiError, getTokenUsage } from './util';
+import { calculateOpenAICost, formatOpenAiError, getTokenUsage } from './util';
 
 export class OpenAiResponsesProvider extends OpenAiGenericProvider {
   static OPENAI_RESPONSES_MODEL_NAMES = [
@@ -79,7 +78,7 @@ export class OpenAiResponsesProvider extends OpenAiGenericProvider {
       ...context?.prompt?.config,
     };
 
-    let input;
+    let input: any;
     try {
       const parsedJson = JSON.parse(prompt);
       if (Array.isArray(parsedJson)) {
@@ -112,7 +111,7 @@ export class OpenAiResponsesProvider extends OpenAiGenericProvider {
       ? maybeLoadFromExternalFile(renderVarsInObject(config.response_format, context?.vars))
       : undefined;
 
-    let textFormat;
+    let textFormat: any;
     if (responseFormat) {
       if (responseFormat.type === 'json_object') {
         textFormat = {
@@ -211,7 +210,9 @@ export class OpenAiResponsesProvider extends OpenAiGenericProvider {
     const { body, config } = this.getOpenAiBody(prompt, context, callApiOptions);
     logger.debug(`Calling OpenAI Responses API: ${JSON.stringify(body)}`);
 
-    let data, status, statusText;
+    let data: any;
+    let status: number | undefined;
+    let statusText: string | undefined;
     let cached = false;
     try {
       ({ data, cached, status, statusText } = await fetchWithCache(

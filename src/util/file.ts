@@ -36,7 +36,9 @@ export function getNunjucksEngineForFilePath(): nunjucks.Environment {
  *
  * @throws {Error} If the specified file does not exist.
  */
-export function maybeLoadFromExternalFile(filePath: string | object | Function | undefined | null) {
+export function maybeLoadFromExternalFile(
+  filePath: string | object | ((...args: any[]) => any) | undefined | null,
+) {
   if (Array.isArray(filePath)) {
     return filePath.map((path) => {
       const content: any = maybeLoadFromExternalFile(path);

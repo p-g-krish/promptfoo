@@ -10,12 +10,12 @@ import type {
   CallApiContextParams,
   CallApiOptionsParams,
   ProviderEmbeddingResponse,
-  ProviderResponse,
   ProviderOptions,
+  ProviderResponse,
 } from '../types';
 import type { EnvOverrides } from '../types/env';
-import { transform } from '../util/transform';
 import type { TransformContext } from '../util/transform';
+import { transform } from '../util/transform';
 
 /**
  * Sleep utility function for implementing delays
@@ -471,7 +471,7 @@ export class SageMakerCompletionProvider extends SageMakerGenericProvider implem
         : (getEnvFloat('AWS_SAGEMAKER_TOP_P') ?? 1.0);
     const stopSequences = this.config.stopSequences || [];
 
-    let payload: any;
+    let payload: Record<string, any>;
 
     logger.debug(`Formatting payload for model type: ${this.modelType}`);
 
@@ -559,8 +559,6 @@ export class SageMakerCompletionProvider extends SageMakerGenericProvider implem
           },
         };
         break;
-
-      case 'custom':
       default:
         // For custom, we just pass through the raw prompt data
         try {
@@ -581,7 +579,7 @@ export class SageMakerCompletionProvider extends SageMakerGenericProvider implem
    * Parse the response from SageMaker endpoint
    */
   async parseResponse(responseBody: string): Promise<any> {
-    let responseJson;
+    let responseJson: any;
 
     logger.debug(`Parsing response for model type: ${this.modelType}`);
 
@@ -640,8 +638,6 @@ export class SageMakerCompletionProvider extends SageMakerGenericProvider implem
       case 'jumpstart':
         // For AWS JumpStart models
         return responseJson.generated_text || responseJson;
-
-      case 'custom':
       default:
         // For custom endpoints, try common patterns
         return (
@@ -952,7 +948,7 @@ export class SageMakerEmbeddingProvider
     // Not in cache or cache disabled, make the actual API call
     const runtime = await this.getSageMakerRuntimeInstance();
 
-    let payload;
+    let payload: string;
     const modelType = this.config.modelType || 'custom';
 
     logger.debug(`Formatting embedding payload for model type: ${modelType}`);
@@ -970,8 +966,6 @@ export class SageMakerEmbeddingProvider
           inputs: transformedText,
         });
         break;
-
-      case 'custom':
       default:
         // Try to support multiple common formats
         payload = JSON.stringify({
@@ -1010,7 +1004,7 @@ export class SageMakerEmbeddingProvider
       const responseBody = new TextDecoder().decode(response.Body);
       logger.debug(`SageMaker embedding response: ${responseBody.substring(0, 200)}...`);
 
-      let responseJson;
+      let responseJson: any;
       try {
         responseJson = JSON.parse(responseBody);
       } catch (_) {

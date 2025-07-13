@@ -15,16 +15,16 @@ import type Eval from '../models/eval';
 import type EvalResult from '../models/evalResult';
 import type { Vars } from '../types';
 import {
+  type CsvRow,
   type EvaluateResult,
   type EvaluateTableOutput,
-  type NunjucksFilterMap,
-  type TestCase,
-  type OutputFile,
-  type CsvRow,
   isApiProvider,
   isProviderOptions,
+  type NunjucksFilterMap,
+  type OutputFile,
   OutputFileExtension,
   ResultFailureReason,
+  type TestCase,
 } from '../types';
 import invariant from '../util/invariant';
 import { convertTestResultsToTableRow } from './exportToFile';
@@ -269,7 +269,7 @@ export function renderVarsInObject<T>(obj: T, vars?: Record<string, string | obj
     }
     return result as T;
   } else if (typeof obj === 'function') {
-    const fn = obj as Function;
+    const fn = obj as (...args: any[]) => any;
     return renderVarsInObject(fn({ vars }) as T);
   }
   return obj;
@@ -311,7 +311,7 @@ export function parsePathOrGlob(
   }
 
   // verify that filename without function exists
-  let stats;
+  let stats: fs.Stats | undefined;
   try {
     stats = fs.statSync(path.join(basePath, filename));
   } catch (err) {
@@ -320,7 +320,7 @@ export function parsePathOrGlob(
     }
   }
 
-  const isPathPattern = stats?.isDirectory() || /[*?{}\[\]]/.test(filePath); // glob pattern
+  const isPathPattern = stats?.isDirectory() || /[*?{}[\]]/.test(filePath); // glob pattern
   const safeFilename = path.relative(
     basePath,
     path.isAbsolute(filename) ? filename : path.resolve(basePath, filename),

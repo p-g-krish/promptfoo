@@ -12,6 +12,7 @@ import type {
 import invariant from '../util/invariant';
 import { safeJsonStringify } from '../util/json';
 
+// biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control characters
 const ANSI_ESCAPE = /\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
 
 function stripText(text: string) {
@@ -20,10 +21,11 @@ function stripText(text: string) {
 
 export function parseScriptParts(scriptPath: string): string[] {
   const scriptPartsRegex = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
-  let match;
+  let match: RegExpExecArray | null;
   const scriptParts = [];
 
-  while ((match = scriptPartsRegex.exec(scriptPath)) !== null) {
+  match = scriptPartsRegex.exec(scriptPath);
+  while (match !== null) {
     if (match[1]) {
       scriptParts.push(match[1]);
     } else if (match[2]) {
@@ -31,6 +33,7 @@ export function parseScriptParts(scriptPath: string): string[] {
     } else {
       scriptParts.push(match[0]);
     }
+    match = scriptPartsRegex.exec(scriptPath);
   }
 
   return scriptParts;
@@ -72,7 +75,7 @@ export class ScriptCompletionProvider implements ApiProvider {
 
     const cacheKey = `exec:${this.scriptPath}:${fileHashes.join(':')}:${prompt}:${JSON.stringify(this.options)}`;
 
-    let cachedResult;
+    let cachedResult: string | null | undefined;
     if (fileHashes.length > 0 && isCacheEnabled()) {
       const cache = await getCache();
       cachedResult = await cache.get(cacheKey);

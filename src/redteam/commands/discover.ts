@@ -311,7 +311,7 @@ export function discoverCommand(
       let config: UnifiedConfig | null = null;
       // Although the providers/targets property supports multiple values, Redteaming only supports
       // a single target at a time.
-      let target: ApiProvider | undefined = undefined;
+      let target: ApiProvider | undefined;
       // Fallback to the default config path:
 
       // If user provides a config, read the target from it:

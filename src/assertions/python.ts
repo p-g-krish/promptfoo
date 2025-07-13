@@ -44,8 +44,8 @@ export const handlePython = async ({
   output,
 }: AssertionParams): Promise<GradingResult> => {
   invariant(typeof renderedValue === 'string', 'python assertion must have a string value');
-  let pass;
-  let score;
+  let pass: boolean | undefined;
+  let score: number | undefined;
   try {
     let result: string | number | boolean | object | GradingResult | undefined;
     if (typeof valueFromScript === 'undefined') {
@@ -89,7 +89,7 @@ ${
       pass = false;
       score = 0.0;
     } else if (typeof result === 'string' && result.startsWith('{')) {
-      let parsed;
+      let parsed: any;
       try {
         parsed = JSON.parse(result);
       } catch (err) {

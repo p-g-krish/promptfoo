@@ -1,6 +1,3 @@
-import type React from 'react';
-import { useState, useEffect } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 import CheckIcon from '@mui/icons-material/Check';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Alert from '@mui/material/Alert';
@@ -20,6 +17,9 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { ellipsize } from '../../../../../util/text';
 import TraceView from '../../../components/traces/TraceView';
 import ChatMessages, { type Message } from './ChatMessages';
@@ -397,11 +397,11 @@ export default function EvalOutputPromptDialog({
             content={metadata.redteamFinalPrompt}
             title="Modified User Input (Red Team)"
             onCopy={() => copyFieldToClipboard('redteamFinalPrompt', metadata.redteamFinalPrompt)}
-            copied={copiedFields['redteamFinalPrompt'] || false}
+            copied={copiedFields.redteamFinalPrompt || false}
             onMouseEnter={() => setHoveredElement('redteamFinalPrompt')}
             onMouseLeave={() => setHoveredElement(null)}
             showCopyButton={
-              hoveredElement === 'redteamFinalPrompt' || copiedFields['redteamFinalPrompt']
+              hoveredElement === 'redteamFinalPrompt' || copiedFields.redteamFinalPrompt
             }
           />
         )}
@@ -410,10 +410,10 @@ export default function EvalOutputPromptDialog({
             content={output}
             title="Output"
             onCopy={() => copyFieldToClipboard('output', output)}
-            copied={copiedFields['output'] || false}
+            copied={copiedFields.output || false}
             onMouseEnter={() => setHoveredElement('output')}
             onMouseLeave={() => setHoveredElement(null)}
-            showCopyButton={hoveredElement === 'output' || copiedFields['output']}
+            showCopyButton={hoveredElement === 'output' || copiedFields.output}
           />
         )}
         <AssertionResults gradingResults={gradingResults} />

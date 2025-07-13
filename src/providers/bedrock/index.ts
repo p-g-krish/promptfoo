@@ -596,8 +596,8 @@ export const BEDROCK_MODEL = {
       stop?: string[],
       modelName?: string,
     ) => {
-      let messages;
-      let systemPrompt;
+      let messages: any;
+      let systemPrompt: any;
       try {
         const parsed = JSON.parse(prompt);
         if (Array.isArray(parsed)) {
@@ -741,8 +741,8 @@ export const BEDROCK_MODEL = {
       stop?: string[],
       modelName?: string,
     ) => {
-      let messages;
-      let systemPrompt;
+      let messages: any;
+      let systemPrompt: any;
       try {
         const parsed = JSON.parse(prompt);
         if (Array.isArray(parsed)) {
@@ -1477,7 +1477,7 @@ export abstract class AwsBedrockGenericProvider {
 
   async getBedrockInstance() {
     if (!this.bedrock) {
-      let handler;
+      let handler: any;
       // set from https://www.npmjs.com/package/proxy-agent
       if (getEnvString('HTTP_PROXY') || getEnvString('HTTPS_PROXY')) {
         try {
@@ -1567,7 +1567,7 @@ export class AwsBedrockCompletionProvider extends AwsBedrockGenericProvider impl
       }
     }
 
-    let response;
+    let response: any;
     try {
       const bedrockInstance = await this.getBedrockInstance();
 
@@ -1707,7 +1707,7 @@ export class AwsBedrockEmbeddingProvider
         };
 
     logger.debug(`Calling AWS Bedrock API for embeddings: ${JSON.stringify(params)}`);
-    let response;
+    let response: any;
     try {
       const bedrockInstance = await this.getBedrockInstance();
       response = await bedrockInstance.invokeModel({

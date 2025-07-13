@@ -44,7 +44,7 @@ export class AzureCompletionProvider extends AzureGenericProvider {
     };
 
     logger.debug(`Calling Azure API: ${JSON.stringify(body)}`);
-    let data;
+    let data: any;
     let cached = false;
     try {
       ({ data, cached } = (await fetchWithCache(

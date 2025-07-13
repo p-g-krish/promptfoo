@@ -1,10 +1,10 @@
-import { OpenAiGenericProvider } from '.';
 import { fetchWithCache } from '../../cache';
 import logger from '../../logger';
 import type { CallApiContextParams, CallApiOptionsParams, ProviderResponse } from '../../types';
 import type { EnvOverrides } from '../../types/env';
 import { ellipsize } from '../../util/text';
 import { REQUEST_TIMEOUT_MS } from '../shared';
+import { OpenAiGenericProvider } from '.';
 import type { OpenAiSharedOptions } from './types';
 import { formatOpenAiError } from './util';
 
@@ -141,7 +141,7 @@ export function calculateImageCost(
 
   if (model === 'dall-e-3') {
     const costKey = `${imageQuality}_${size}`;
-    const costPerImage = DALLE3_COSTS[costKey] || DALLE3_COSTS['standard_1024x1024'];
+    const costPerImage = DALLE3_COSTS[costKey] || DALLE3_COSTS.standard_1024x1024;
     return costPerImage * n;
   } else if (model === 'dall-e-2') {
     const costPerImage = DALLE2_COSTS[size as DallE2Size] || DALLE2_COSTS['1024x1024'];
@@ -263,7 +263,9 @@ export class OpenAiImageProvider extends OpenAiGenericProvider {
       ...config.headers,
     };
 
-    let data, status, statusText;
+    let data: any;
+    let status: number | undefined;
+    let statusText: string | undefined;
     let cached = false;
     try {
       ({ data, cached, status, statusText } = await callOpenAiImageApi(

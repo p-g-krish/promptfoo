@@ -4,7 +4,7 @@ describe('EchoProvider', () => {
   describe('constructor', () => {
     it('should initialize with default options', () => {
       const provider = new EchoProvider();
-      expect(provider['options']).toEqual({});
+      expect(provider.options).toEqual({});
       expect(provider.label).toBeUndefined();
       expect(provider.config).toBeUndefined();
       expect(provider.delay).toBeUndefined();

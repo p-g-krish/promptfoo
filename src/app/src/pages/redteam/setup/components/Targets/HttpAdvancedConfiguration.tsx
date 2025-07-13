@@ -1,5 +1,3 @@
-import React from 'react';
-import Editor from 'react-simple-code-editor';
 import { useToast } from '@app/hooks/useToast';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -22,11 +20,13 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
+import { useTheme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { useTheme } from '@mui/material/styles';
 import type { ProviderOptions } from '@promptfoo/types';
 import dedent from 'dedent';
+import React from 'react';
+import Editor from 'react-simple-code-editor';
 import 'prismjs/components/prism-clike';
 // @ts-expect-error: No types available
 import { highlight, languages } from 'prismjs/components/prism-core';
@@ -80,6 +80,7 @@ const HttpAdvancedConfiguration: React.FC<HttpAdvancedConfigurationProps> = ({
               <a
                 href="https://www.promptfoo.dev/docs/providers/http/#request-transform"
                 target="_blank"
+                rel="noopener"
               >
                 docs
               </a>{' '}
@@ -128,6 +129,7 @@ const HttpAdvancedConfiguration: React.FC<HttpAdvancedConfigurationProps> = ({
               <a
                 href="https://www.promptfoo.dev/docs/providers/http/#response-transform"
                 target="_blank"
+                rel="noopener"
               >
                 docs
               </a>{' '}
@@ -222,6 +224,7 @@ const HttpAdvancedConfiguration: React.FC<HttpAdvancedConfigurationProps> = ({
               <a
                 href="https://www.promptfoo.dev/docs/providers/http/#session-management"
                 target="_blank"
+                rel="noopener"
               >
                 docs
               </a>{' '}
@@ -291,6 +294,7 @@ const HttpAdvancedConfiguration: React.FC<HttpAdvancedConfigurationProps> = ({
               <a
                 href="https://www.promptfoo.dev/docs/providers/http/#digital-signature-authentication"
                 target="_blank"
+                rel="noopener"
               >
                 docs
               </a>{' '}
@@ -681,6 +685,7 @@ const HttpAdvancedConfiguration: React.FC<HttpAdvancedConfigurationProps> = ({
               <a
                 href="https://www.promptfoo.dev/docs/providers/http/#error-handling"
                 target="_blank"
+                rel="noopener"
               >
                 docs
               </a>{' '}

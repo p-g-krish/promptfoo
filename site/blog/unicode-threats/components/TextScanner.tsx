@@ -157,6 +157,7 @@ const TextScanner: React.FC = () => {
             <>
               <div
                 className={styles.preview}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML generation for highlighting Unicode characters
                 dangerouslySetInnerHTML={{ __html: getHighlightedText() }}
               />
               <div className={styles.findings}>

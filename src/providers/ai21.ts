@@ -4,7 +4,7 @@ import { getEnvString } from '../envars';
 import logger from '../logger';
 import type { ApiProvider, ProviderResponse, TokenUsage } from '../types';
 import type { EnvOverrides } from '../types/env';
-import { calculateCost, REQUEST_TIMEOUT_MS, parseChatPrompt } from './shared';
+import { calculateCost, parseChatPrompt, REQUEST_TIMEOUT_MS } from './shared';
 
 const AI21_CHAT_MODELS = [
   {
@@ -137,8 +137,8 @@ export class AI21ChatCompletionProvider implements ApiProvider {
     const url = `${this.getApiUrl()}/chat/completions`;
     logger.debug(`AI21 API request: ${url} ${JSON.stringify(body)}`);
 
-    let data,
-      cached = false;
+    let data: any;
+    let cached = false;
 
     try {
       ({ data, cached } = (await fetchWithCache(

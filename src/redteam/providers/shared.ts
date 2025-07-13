@@ -26,7 +26,7 @@ async function loadRedteamProvider({
   jsonOnly?: boolean;
   preferSmallModel?: boolean;
 } = {}) {
-  let ret;
+  let ret: ApiProvider;
   const redteamProvider = provider || cliState.config?.redteam?.provider;
   if (isApiProvider(redteamProvider)) {
     logger.debug(`Using redteam provider: ${redteamProvider}`);
@@ -79,7 +79,7 @@ class RedteamProviderManager {
 
     logger.debug(
       `[RedteamProviderManager] Loading redteam provider: ${JSON.stringify({
-        providedConfig: typeof provider == 'string' ? provider : (provider?.id ?? 'none'),
+        providedConfig: typeof provider === 'string' ? provider : (provider?.id ?? 'none'),
         jsonOnly,
         preferSmallModel,
       })}`,
@@ -112,7 +112,7 @@ export async function getTargetResponse(
   context?: CallApiContextParams,
   options?: CallApiOptionsParams,
 ): Promise<TargetResponse> {
-  let targetRespRaw;
+  let targetRespRaw: ProviderResponse;
 
   try {
     targetRespRaw = await targetProvider.callApi(targetPrompt, context, options);

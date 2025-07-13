@@ -1,23 +1,8 @@
-import dedent from 'dedent';
-import * as fs from 'fs';
-import * as path from 'path';
-import { runAssertion, runAssertions } from '../../src/assertions';
-import { validateXml, containsXml } from '../../src/assertions/xml';
-import { fetchWithRetries } from '../../src/fetch';
+import { runAssertions } from '../../src/assertions';
 import { OpenAiChatCompletionProvider } from '../../src/providers/openai/chat';
-import {
-  DefaultGradingJsonProvider,
-  DefaultEmbeddingProvider,
-} from '../../src/providers/openai/defaults';
+import { DefaultGradingJsonProvider } from '../../src/providers/openai/defaults';
 import { ReplicateModerationProvider } from '../../src/providers/replicate';
-import type {
-  Assertion,
-  ApiProvider,
-  AtomicTestCase,
-  ProviderResponse,
-  GradingResult,
-} from '../../src/types';
-import { TestGrader } from '../util/utils';
+import type { AtomicTestCase } from '../../src/types';
 
 jest.mock('../../src/redteam/remoteGeneration', () => ({
   shouldGenerateRemote: jest.fn().mockReturnValue(false),
@@ -80,8 +65,6 @@ jest.mock('../../src/matchers', () => {
       .mockResolvedValue({ pass: true, score: 1, reason: 'Mocked reason' }),
   };
 });
-
-const Grader = new TestGrader();
 
 describe('runAssertions', () => {
   const test: AtomicTestCase = {

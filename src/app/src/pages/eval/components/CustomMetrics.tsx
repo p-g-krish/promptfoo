@@ -1,5 +1,5 @@
-import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
+import React from 'react';
 import './CustomMetrics.css';
 
 const NUM_METRICS_TO_DISPLAY_ABOVE_FOLD = 10;

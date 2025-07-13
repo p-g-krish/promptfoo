@@ -1,7 +1,7 @@
 import {
-  ShellInjectionPlugin,
-  ShellInjectionGrader,
   DEFAULT_EXAMPLES,
+  ShellInjectionGrader,
+  ShellInjectionPlugin,
 } from '../../../src/redteam/plugins/shellInjection';
 import type { RedteamObjectConfig } from '../../../src/redteam/types';
 import type { ApiProvider } from '../../../src/types';
@@ -20,7 +20,7 @@ describe('ShellInjectionPlugin', () => {
 
   it('should generate template with default examples when no examples provided', async () => {
     const plugin = new ShellInjectionPlugin(mockProvider, 'test purpose', 'test_var');
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
 
     expect(template).toContain('AI code review assistant');
     expect(template).toContain('developer productivity chatbot');
@@ -37,7 +37,7 @@ describe('ShellInjectionPlugin', () => {
     } as RedteamObjectConfig;
 
     const plugin = new ShellInjectionPlugin(mockProvider, 'test purpose', 'test_var', customConfig);
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
 
     expect(template).toContain('Context-specific examples:');
     expect(template).toContain('Examples targeting security boundary violations:');
@@ -50,7 +50,7 @@ describe('ShellInjectionPlugin', () => {
 
   it('should return correct assertions for a prompt', () => {
     const plugin = new ShellInjectionPlugin(mockProvider, 'test purpose', 'test_var');
-    const assertions = plugin['getAssertions']('test prompt');
+    const assertions = plugin.getAssertions('test prompt');
 
     expect(assertions).toHaveLength(1);
     expect(assertions[0]).toEqual({
@@ -74,7 +74,7 @@ describe('ShellInjectionPlugin', () => {
   it('should handle empty examples config', async () => {
     const emptyConfig = { examples: [] } as any as RedteamObjectConfig;
     const plugin = new ShellInjectionPlugin(mockProvider, 'test purpose', 'test_var', emptyConfig);
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
 
     expect(template).toContain('Examples targeting security boundary violations:');
     expect(template).toContain(DEFAULT_EXAMPLES);
@@ -82,7 +82,7 @@ describe('ShellInjectionPlugin', () => {
 
   it('should handle undefined examples config', async () => {
     const plugin = new ShellInjectionPlugin(mockProvider, 'test purpose', 'test_var', undefined);
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
 
     expect(template).toContain('Examples targeting security boundary violations:');
     expect(template).toContain(DEFAULT_EXAMPLES);
@@ -104,7 +104,7 @@ describe('ShellInjectionPlugin', () => {
       'test_var',
       malformedConfig,
     );
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
 
     expect(template).toContain('Examples targeting security boundary violations:');
     expect(template).toContain(DEFAULT_EXAMPLES);

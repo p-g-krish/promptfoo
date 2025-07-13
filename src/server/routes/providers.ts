@@ -1,6 +1,6 @@
 import dedent from 'dedent';
-import { Router } from 'express';
 import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import type { ZodError } from 'zod-validation-error';
 import { fromZodError } from 'zod-validation-error';
@@ -31,12 +31,12 @@ providersRouter.post('/test', async (req: Request, res: Response): Promise<void>
 
   const loadedProvider = await loadApiProvider(providerOptions.id, { options: providerOptions });
   // Call the provider with the test prompt
-  let result;
+  let result: ProviderResponse | ProviderEmbeddingResponse;
   const vars: Record<string, string> = {};
 
   // Client-generated Session ID:
   if (providerOptions.config?.sessionSource === 'client') {
-    vars['sessionId'] = uuidv4();
+    vars.sessionId = uuidv4();
   }
 
   try {

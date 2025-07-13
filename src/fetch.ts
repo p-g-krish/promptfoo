@@ -228,7 +228,7 @@ export async function fetchWithRetries(
   const backoff = getEnvInt('PROMPTFOO_REQUEST_BACKOFF_MS', 5000);
 
   for (let i = 0; i <= maxRetries; i++) {
-    let response;
+    let response: Response | undefined;
     try {
       response = await fetchWithTimeout(url, options, timeout);
 
@@ -246,7 +246,7 @@ export async function fetchWithRetries(
 
       return response;
     } catch (error) {
-      let errorMessage;
+      let errorMessage: string;
       if (error instanceof Error) {
         // Extract as much detail as possible from the error
         const typedError = error as SystemError;
@@ -264,7 +264,7 @@ export async function fetchWithRetries(
 
       logger.debug(`Request to ${url} failed (attempt #${i + 1}), retrying: ${errorMessage}`);
       if (i < maxRetries) {
-        const waitTime = Math.pow(2, i) * (backoff + 1000 * Math.random());
+        const waitTime = 2 ** i * (backoff + 1000 * Math.random());
         await sleep(waitTime);
       }
       lastErrorMessage = errorMessage;

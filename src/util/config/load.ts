@@ -18,7 +18,6 @@ import { readPrompts, readProviderPromptMap } from '../../prompts';
 import { loadApiProviders } from '../../providers';
 import telemetry from '../../telemetry';
 import {
-  UnifiedConfigSchema,
   type CommandLineOptions,
   type Prompt,
   type ProviderOptions,
@@ -28,6 +27,7 @@ import {
   type TestCase,
   type TestSuite,
   type UnifiedConfig,
+  UnifiedConfigSchema,
 } from '../../types';
 import { isRunningUnderNpx, readFilters } from '../../util';
 import { maybeLoadFromExternalFile } from '../../util/file';
@@ -402,7 +402,7 @@ export async function combineConfigs(configPaths: string[]): Promise<UnifiedConf
 
   // Combine all configs into a single UnifiedConfig
   const combinedConfig: UnifiedConfig = {
-    tags: configs.reduce((prev, curr) => ({ ...prev, ...curr.tags }), {}),
+    tags: Object.assign({}, ...configs.map((config) => config.tags || {})),
     description: configs.map((config) => config.description).join(', '),
     providers,
     prompts,
@@ -439,9 +439,9 @@ export async function combineConfigs(configPaths: string[]): Promise<UnifiedConf
       }
       return prev;
     }, undefined),
-    nunjucksFilters: configs.reduce((prev, curr) => ({ ...prev, ...curr.nunjucksFilters }), {}),
-    env: configs.reduce((prev, curr) => ({ ...prev, ...curr.env }), {}),
-    evaluateOptions: configs.reduce((prev, curr) => ({ ...prev, ...curr.evaluateOptions }), {}),
+    nunjucksFilters: Object.assign({}, ...configs.map((config) => config.nunjucksFilters || {})),
+    env: Object.assign({}, ...configs.map((config) => config.env || {})),
+    evaluateOptions: Object.assign({}, ...configs.map((config) => config.evaluateOptions || {})),
     outputPath: configs.flatMap((config) =>
       typeof config.outputPath === 'string'
         ? [config.outputPath]
@@ -449,13 +449,13 @@ export async function combineConfigs(configPaths: string[]): Promise<UnifiedConf
           ? config.outputPath
           : [],
     ),
-    commandLineOptions: configs.reduce(
-      (prev, curr) => ({ ...prev, ...curr.commandLineOptions }),
+    commandLineOptions: Object.assign(
       {},
+      ...configs.map((config) => config.commandLineOptions || {}),
     ),
     extensions,
     redteam,
-    metadata: configs.reduce((prev, curr) => ({ ...prev, ...curr.metadata }), {}),
+    metadata: Object.assign({}, ...configs.map((config) => config.metadata || {})),
     sharing: (() => {
       if (configs.some((config) => config.sharing === false)) {
         return false;

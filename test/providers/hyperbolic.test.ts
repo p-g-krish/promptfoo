@@ -1,5 +1,5 @@
 import { HyperbolicAudioProvider } from '../../src/providers/hyperbolic/audio';
-import { HyperbolicProvider, calculateHyperbolicCost } from '../../src/providers/hyperbolic/chat';
+import { calculateHyperbolicCost, HyperbolicProvider } from '../../src/providers/hyperbolic/chat';
 import { HyperbolicImageProvider } from '../../src/providers/hyperbolic/image';
 import { OpenAiChatCompletionProvider } from '../../src/providers/openai/chat';
 
@@ -34,20 +34,20 @@ describe('HyperbolicProvider', () => {
       provider = new HyperbolicProvider('deepseek-ai/DeepSeek-R1', {
         config: { config: { apiKey: customApiKey } },
       });
-      expect(provider['originalConfig']?.apiKey).toBe(customApiKey);
+      expect(provider.originalConfig?.apiKey).toBe(customApiKey);
     });
   });
 
   describe('isReasoningModel', () => {
     it('should identify reasoning models correctly', () => {
       const reasoningProvider = new HyperbolicProvider('deepseek-ai/DeepSeek-R1', {});
-      expect(reasoningProvider['isReasoningModel']()).toBe(true);
+      expect(reasoningProvider.isReasoningModel()).toBe(true);
 
       const qwqProvider = new HyperbolicProvider('qwen/QwQ-32B', {});
-      expect(qwqProvider['isReasoningModel']()).toBe(true);
+      expect(qwqProvider.isReasoningModel()).toBe(true);
 
       const regularProvider = new HyperbolicProvider('meta-llama/Llama-3.1-70B', {});
-      expect(regularProvider['isReasoningModel']()).toBe(false);
+      expect(regularProvider.isReasoningModel()).toBe(false);
     });
   });
 
@@ -154,30 +154,30 @@ describe('HyperbolicImageProvider', () => {
   describe('getApiModelName', () => {
     it('should resolve model aliases', () => {
       provider = new HyperbolicImageProvider('flux-dev', {});
-      expect(provider['getApiModelName']()).toBe('Flux.1-dev');
+      expect(provider.getApiModelName()).toBe('Flux.1-dev');
 
       provider = new HyperbolicImageProvider('sdxl', {});
-      expect(provider['getApiModelName']()).toBe('SDXL1.0-base');
+      expect(provider.getApiModelName()).toBe('SDXL1.0-base');
     });
 
     it('should return original name for unknown models', () => {
       provider = new HyperbolicImageProvider('custom-model', {});
-      expect(provider['getApiModelName']()).toBe('custom-model');
+      expect(provider.getApiModelName()).toBe('custom-model');
     });
   });
 
   describe('calculateImageCost', () => {
     it('should return correct cost for known models', () => {
       provider = new HyperbolicImageProvider('Flux.1-dev', {});
-      expect(provider['calculateImageCost']()).toBe(0.025);
+      expect(provider.calculateImageCost()).toBe(0.025);
 
       provider = new HyperbolicImageProvider('SDXL1.0-base', {});
-      expect(provider['calculateImageCost']()).toBe(0.01);
+      expect(provider.calculateImageCost()).toBe(0.01);
     });
 
     it('should return default cost for unknown models', () => {
       provider = new HyperbolicImageProvider('unknown-model', {});
-      expect(provider['calculateImageCost']()).toBe(0.01);
+      expect(provider.calculateImageCost()).toBe(0.01);
     });
   });
 });
@@ -212,13 +212,13 @@ describe('HyperbolicAudioProvider', () => {
     it('should calculate cost based on text length', () => {
       provider = new HyperbolicAudioProvider('Melo-TTS', {});
       const textLength = 5000; // 5000 characters
-      expect(provider['calculateAudioCost'](textLength)).toBe(0.005); // $0.001 per 1000 chars
+      expect(provider.calculateAudioCost(textLength)).toBe(0.005); // $0.001 per 1000 chars
     });
 
     it('should handle partial thousands', () => {
       provider = new HyperbolicAudioProvider('Melo-TTS', {});
       const textLength = 1500; // 1.5 thousand characters
-      expect(provider['calculateAudioCost'](textLength)).toBe(0.0015);
+      expect(provider.calculateAudioCost(textLength)).toBe(0.0015);
     });
   });
 });

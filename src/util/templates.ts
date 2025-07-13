@@ -41,9 +41,7 @@ export function getNunjucksEngine(
   };
   env.addGlobal('env', envGlobals);
 
-  env.addFilter('load', function (str) {
-    return JSON.parse(str);
-  });
+  env.addFilter('load', (str) => JSON.parse(str));
 
   if (filters) {
     for (const [name, filter] of Object.entries(filters)) {
@@ -67,20 +65,23 @@ export function extractVariablesFromTemplate(template: string): string[] {
   // Remove comments
   template = template.replace(commentRegex, '');
 
-  let match;
-  while ((match = regex.exec(template)) !== null) {
+  let match: RegExpExecArray | null = regex.exec(template);
+  while (match !== null) {
     const variable = match[1] || match[2];
     if (variable) {
       // Split by dot and add only the full path
       variableSet.add(variable);
     }
+    match = regex.exec(template);
   }
 
   // Handle for loops separately
   const forLoopRegex = /\{%[\s]*for[\s]+(\w+)[\s]+in[\s]+(\w+)[\s]*%\}/g;
-  while ((match = forLoopRegex.exec(template)) !== null) {
-    variableSet.delete(match[1]); // Remove loop variable
-    variableSet.add(match[2]); // Add the iterated variable
+  let forLoopMatch: RegExpExecArray | null = forLoopRegex.exec(template);
+  while (forLoopMatch !== null) {
+    variableSet.delete(forLoopMatch[1]); // Remove loop variable
+    variableSet.add(forLoopMatch[2]); // Add the iterated variable
+    forLoopMatch = forLoopRegex.exec(template);
   }
 
   return Array.from(variableSet);

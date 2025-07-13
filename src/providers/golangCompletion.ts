@@ -74,7 +74,7 @@ export class GolangProvider implements ApiProvider {
       this.options,
     )}:${JSON.stringify(context?.vars)}`;
     const cache = await getCache();
-    let cachedResult;
+    let cachedResult: string | undefined;
 
     if (isCacheEnabled()) {
       cachedResult = (await cache.get(cacheKey)) as string;

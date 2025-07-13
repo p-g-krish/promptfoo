@@ -1,26 +1,28 @@
 import { Anthropic as GatewayAnthropic } from '@adaline/anthropic';
 import { Azure as GatewayAzure } from '@adaline/azure';
-import { Gateway } from '@adaline/gateway';
-import type { Cache as GatewayCache } from '@adaline/gateway';
 import type {
   CompleteChatHandlerResponseType,
+  Cache as GatewayCache,
   GetEmbeddingsHandlerResponseType,
 } from '@adaline/gateway';
+import { Gateway } from '@adaline/gateway';
 import { Google as GatewayGoogle } from '@adaline/google';
 import { Groq as GatewayGroq } from '@adaline/groq';
 import { OpenRouter as GatewayOpenRouter } from '@adaline/open-router';
 import { OpenAI as GatewayOpenAI } from '@adaline/openai';
-import type { ChatModelV1 as GatewayChatModel } from '@adaline/provider';
-import type { EmbeddingModelV1 as GatewayEmbeddingModel } from '@adaline/provider';
+import type {
+  ChatModelV1 as GatewayChatModel,
+  EmbeddingModelV1 as GatewayEmbeddingModel,
+} from '@adaline/provider';
 import { TogetherAI as GatewayTogetherAi } from '@adaline/together-ai';
 import type {
-  MessageType as GatewayMessageType,
-  ToolType as GatewayToolType,
-  ResponseSchemaType as GatewayResponseSchemaType,
   EmbeddingRequestsType as GatewayEmbeddingRequestsType,
+  MessageType as GatewayMessageType,
+  ResponseSchemaType as GatewayResponseSchemaType,
+  ToolType as GatewayToolType,
 } from '@adaline/types';
 import { Vertex as GatewayVertex } from '@adaline/vertex';
-import { isCacheEnabled, getCache } from '../cache';
+import { getCache, isCacheEnabled } from '../cache';
 import { getEnvFloat, getEnvInt, getEnvString } from '../envars';
 import logger from '../logger';
 import type {
@@ -572,7 +574,7 @@ export class AdalineGatewayChatProvider extends AdalineGatewayGenericProvider {
       };
     }
 
-    let response;
+    let response: any;
     const gatewayRequest = {
       model: gatewayChatModel,
       config: gatewayConfig,
@@ -611,36 +613,20 @@ export class AdalineGatewayChatProvider extends AdalineGatewayGenericProvider {
             throw new Error(`Failed to parse JSON output: ${error}`);
           }
         }
-      } else {
-        if (formatType === 'openai') {
-          // convert gateway message type to openai message type if it's more than just text content
-          if (
-            response.response.messages[0].content.filter(
-              (content: any) => content.modality === 'text',
-            ).length > 0
-          ) {
-            // response has both text and tool-call content
-            output = {
-              content: response.response.messages[0].content
-                .filter((content: any) => content.modality === 'text')
-                .map((content: any) => content.value)
-                .join(' '),
-              tool_calls: response.response.messages[0].content
-                .filter((content: any) => content.modality === 'tool-call')
-                .map((content: any) => {
-                  return {
-                    id: content.id,
-                    type: 'function',
-                    function: {
-                      name: content.name,
-                      arguments: content.arguments,
-                    },
-                  };
-                }),
-            } as any;
-          } else {
-            // response has only tool-call content
-            output = response.response.messages[0].content
+      } else if (formatType === 'openai') {
+        // convert gateway message type to openai message type if it's more than just text content
+        if (
+          response.response.messages[0].content.filter(
+            (content: any) => content.modality === 'text',
+          ).length > 0
+        ) {
+          // response has both text and tool-call content
+          output = {
+            content: response.response.messages[0].content
+              .filter((content: any) => content.modality === 'text')
+              .map((content: any) => content.value)
+              .join(' '),
+            tool_calls: response.response.messages[0].content
               .filter((content: any) => content.modality === 'tool-call')
               .map((content: any) => {
                 return {
@@ -651,14 +637,28 @@ export class AdalineGatewayChatProvider extends AdalineGatewayGenericProvider {
                     arguments: content.arguments,
                   },
                 };
-              }) as any;
-          }
+              }),
+          } as any;
         } else {
-          output = response.response.messages[0].content as any;
+          // response has only tool-call content
+          output = response.response.messages[0].content
+            .filter((content: any) => content.modality === 'tool-call')
+            .map((content: any) => {
+              return {
+                id: content.id,
+                type: 'function',
+                function: {
+                  name: content.name,
+                  arguments: content.arguments,
+                },
+              };
+            }) as any;
         }
+      } else {
+        output = response.response.messages[0].content as any;
       }
 
-      let cost;
+      let cost: number | undefined;
       const costConfig = { cost: this.config.cost };
       if (this.providerName === 'openai') {
         cost = calculateOpenAICost(

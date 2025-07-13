@@ -757,7 +757,7 @@ describe('AnthropicMessagesProvider', () => {
 
       // Simulate initialization in progress
       const initPromise = Promise.resolve();
-      provider['initializationPromise'] = initPromise;
+      (provider as any).initializationPromise = initPromise;
 
       await provider.cleanup();
 

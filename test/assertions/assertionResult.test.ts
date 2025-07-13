@@ -2,10 +2,6 @@ import { AssertionsResult } from '../../src/assertions/assertionsResult';
 import type { AssertionSet, GradingResult } from '../../src/types';
 
 describe('AssertionsResult', () => {
-  beforeEach(() => {
-    delete process.env.PROMPTFOO_SHORT_CIRCUIT_TEST_FAILURES;
-  });
-
   const succeedingResult = {
     pass: true,
     score: 1,
@@ -32,6 +28,7 @@ describe('AssertionsResult', () => {
   let assertionsResult: AssertionsResult;
 
   beforeEach(() => {
+    delete process.env.PROMPTFOO_SHORT_CIRCUIT_TEST_FAILURES;
     assertionsResult = new AssertionsResult();
   });
 

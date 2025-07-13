@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from '../styles/VSCodeSimulator.module.css';
 
 interface File {
@@ -800,7 +800,7 @@ module.exports = { validateUser, validatePasswordStrength };`;
   };
 
   // Handle selecting a predefined prompt
-  const handlePromptSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const _handlePromptSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
     const selectedPromptObj = prompts.find((p) => p.id === selectedValue);
     if (selectedPromptObj) {
@@ -872,6 +872,7 @@ module.exports = { validateUser, validatePasswordStrength };`;
                 className={`${styles.codeArea} ${isEditing && selectedFile ? styles.editing : ''}`}
               >
                 <code
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML generation for educational demo showing hidden code
                   dangerouslySetInnerHTML={
                     selectedFile
                       ? formatCodeWithHighlightedInstructions(selectedFile.content)

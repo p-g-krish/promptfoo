@@ -106,7 +106,7 @@ export async function runRedteamConversation({
   let highestScore = 0;
   let bestResponse = '';
   let finalIteration = 0;
-  let bestInjectVar: string | undefined = undefined;
+  let bestInjectVar: string | undefined;
   let targetPrompt: string | null = null;
 
   const totalTokenUsage = {
@@ -150,7 +150,8 @@ export async function runRedteamConversation({
       continue;
     }
 
-    let improvement, newInjectVar;
+    let improvement: string | undefined;
+    let newInjectVar: string | undefined;
     if (typeof redteamResp.output === 'string') {
       try {
         const parsed = extractFirstJsonObject<{

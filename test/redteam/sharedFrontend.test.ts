@@ -7,7 +7,7 @@ describe('getRiskCategorySeverityMap', () => {
   it('should return default severity map when no plugins provided', () => {
     const result = getRiskCategorySeverityMap();
     expect(result).toBeDefined();
-    expect(result['contracts']).toBe(Severity.Medium);
+    expect(result.contracts).toBe(Severity.Medium);
   });
 
   it('should override default severities with plugin severities', () => {
@@ -18,8 +18,8 @@ describe('getRiskCategorySeverityMap', () => {
 
     const result = getRiskCategorySeverityMap(plugins);
 
-    expect(result['contracts']).toBe(Severity.High);
-    expect(result['politics']).toBe(Severity.Critical);
+    expect(result.contracts).toBe(Severity.High);
+    expect(result.politics).toBe(Severity.Critical);
   });
 
   it('should handle plugins without severity override', () => {
@@ -30,8 +30,8 @@ describe('getRiskCategorySeverityMap', () => {
 
     const result = getRiskCategorySeverityMap(plugins);
 
-    expect(result['contracts']).toBe(Severity.Medium); // Default severity
-    expect(result['politics']).toBe(Severity.Critical);
+    expect(result.contracts).toBe(Severity.Medium); // Default severity
+    expect(result.politics).toBe(Severity.Critical);
   });
 });
 

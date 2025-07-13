@@ -1,5 +1,4 @@
 import path from 'path';
-import { OpenAiGenericProvider } from '.';
 import { fetchWithCache } from '../../cache';
 import cliState from '../../cliState';
 import { getEnvFloat, getEnvInt, getEnvString } from '../../envars';
@@ -13,10 +12,10 @@ import { isJavascriptFile } from '../../util/fileExtensions';
 import { normalizeFinishReason } from '../../util/finishReason';
 import { MCPClient } from '../mcp/client';
 import { transformMCPToolsToOpenAi } from '../mcp/transform';
-import { REQUEST_TIMEOUT_MS, parseChatPrompt } from '../shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS } from '../shared';
+import { OpenAiGenericProvider } from '.';
 import type { OpenAiCompletionOptions, ReasoningEffort } from './types';
-import { calculateOpenAICost } from './util';
-import { formatOpenAiError, getTokenUsage, OPENAI_CHAT_MODELS } from './util';
+import { calculateOpenAICost, formatOpenAiError, getTokenUsage, OPENAI_CHAT_MODELS } from './util';
 
 export class OpenAiChatCompletionProvider extends OpenAiGenericProvider {
   static OPENAI_CHAT_MODELS = OPENAI_CHAT_MODELS;
@@ -26,7 +25,7 @@ export class OpenAiChatCompletionProvider extends OpenAiGenericProvider {
   config: OpenAiCompletionOptions;
   private mcpClient: MCPClient | null = null;
   private initializationPromise: Promise<void> | null = null;
-  private loadedFunctionCallbacks: Record<string, Function> = {};
+  private loadedFunctionCallbacks: Record<string, (...args: any[]) => any> = {};
 
   constructor(
     modelName: string,
@@ -61,7 +60,7 @@ export class OpenAiChatCompletionProvider extends OpenAiGenericProvider {
    * @param fileRef The file reference in the format 'file://path/to/file:functionName'
    * @returns The loaded function
    */
-  private async loadExternalFunction(fileRef: string): Promise<Function> {
+  private async loadExternalFunction(fileRef: string): Promise<(...args: any[]) => any> {
     let filePath = fileRef.slice('file://'.length);
     let functionName: string | undefined;
 
@@ -319,7 +318,9 @@ export class OpenAiChatCompletionProvider extends OpenAiGenericProvider {
     const { body, config } = this.getOpenAiBody(prompt, context, callApiOptions);
     logger.debug(`Calling ${this.getApiUrl()} API: ${JSON.stringify(body)}`);
 
-    let data, status, statusText;
+    let data: any;
+    let status: number | undefined;
+    let statusText: string | undefined;
     let cached = false;
     try {
       ({ data, cached, status, statusText } = await fetchWithCache(

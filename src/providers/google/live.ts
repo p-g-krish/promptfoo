@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { spawn, type ChildProcess } from 'child_process';
+import { type ChildProcess, spawn } from 'child_process';
 import path from 'path';
 import WebSocket from 'ws';
 import cliState from '../../cliState';
@@ -19,10 +19,10 @@ import type { GeminiFormat } from './util';
 import { geminiFormatAndSystemInstructions, loadFile } from './util';
 
 const formatContentMessage = (contents: GeminiFormat, contentIndex: number) => {
-  if (contents[contentIndex].role != 'user') {
+  if (contents[contentIndex].role !== 'user') {
     throw new Error('Can only take user role inputs.');
   }
-  if (contents[contentIndex].parts.length != 1) {
+  if (contents[contentIndex].parts.length !== 1) {
     throw new Error('Unexpected number of parts in user input.');
   }
   const userMessage = contents[contentIndex].parts[0].text;
@@ -44,7 +44,7 @@ const formatContentMessage = (contents: GeminiFormat, contentIndex: number) => {
 export class GoogleLiveProvider implements ApiProvider {
   config: CompletionOptions;
   modelName: string;
-  private loadedFunctionCallbacks: Record<string, Function> = {};
+  private loadedFunctionCallbacks: Record<string, (...args: any[]) => any> = {};
 
   constructor(modelName: string, options: ProviderOptions) {
     this.modelName = modelName;
@@ -169,7 +169,7 @@ export class GoogleLiveProvider implements ApiProvider {
       let response_audio_transcript = '';
       let hasAudioContent = false;
       const function_calls_total: FunctionCall[] = [];
-      let statefulApiState: any = undefined;
+      let statefulApiState: any;
 
       const isTextExpected =
         this.config.generationConfig?.response_modalities?.includes('text') ?? false;
@@ -214,7 +214,7 @@ export class GoogleLiveProvider implements ApiProvider {
 
         // Determine final output text and thinking
         let outputText = response_text_total;
-        let thinking = undefined;
+        let thinking: string | undefined;
 
         // If we have audio content with transcript
         if (hasAudioContent && response_audio_transcript) {
@@ -259,7 +259,7 @@ export class GoogleLiveProvider implements ApiProvider {
           ...restGenerationConfig
         } = this.config.generationConfig || {};
 
-        let formattedSpeechConfig;
+        let formattedSpeechConfig: any;
         if (speechConfig) {
           formattedSpeechConfig = {
             ...(speechConfig.voiceConfig && {
@@ -273,7 +273,7 @@ export class GoogleLiveProvider implements ApiProvider {
           };
         }
 
-        let formattedProactivity;
+        let formattedProactivity: any;
         if (proactivity) {
           formattedProactivity = {
             proactive_audio: proactivity.proactiveAudio,
@@ -607,7 +607,7 @@ export class GoogleLiveProvider implements ApiProvider {
    * @param fileRef The file reference in the format 'file://path/to/file:functionName'
    * @returns The loaded function
    */
-  private async loadExternalFunction(fileRef: string): Promise<Function> {
+  private async loadExternalFunction(fileRef: string): Promise<(...args: any[]) => any> {
     let filePath = fileRef.slice('file://'.length);
     let functionName: string | undefined;
 

@@ -30,7 +30,7 @@ describe('getGradingProvider', () => {
       id: 'openai:chat:gpt-4o-mini-foobar',
       config: {
         apiKey: 'abc123',
-        temperature: 3.1415926,
+        temperature: Math.PI15926,
       },
     };
     const provider = await getGradingProvider('text', providerOptions, DefaultGradingProvider);
@@ -141,16 +141,16 @@ describe('tryParse and renderLlmRubricPrompt', () => {
   let tryParse: (content: string | null | undefined) => any;
 
   beforeAll(async () => {
-    const context: { capturedFn: null | Function } = { capturedFn: null };
+    const context: { capturedFn: null | ((...args: any[]) => any) } = { capturedFn: null };
 
     await renderLlmRubricPrompt('{"test":"value"}', {
-      __capture(fn: Function) {
+      __capture(fn: (...args: any[]) => any) {
         context.capturedFn = fn;
         return 'captured';
       },
     });
 
-    tryParse = function (content: string | null | undefined) {
+    tryParse = (content: string | null | undefined) => {
       try {
         if (content === null || content === undefined) {
           return content;
@@ -397,7 +397,7 @@ describe('PROMPTFOO_DISABLE_OBJECT_STRINGIFY environment variable', () => {
     });
 
     it('should allow direct object property access', async () => {
-      const template = 'Product: {{product.name}} - ${{product.price}}';
+      const template = 'Product: {{product.name}} - $' + '{{product.price}}';
       const product = { name: 'Headphones', price: 99.99 };
 
       const result = await renderLlmRubricPrompt(template, { product });

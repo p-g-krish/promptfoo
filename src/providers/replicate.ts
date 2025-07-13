@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type Replicate from 'replicate';
 import { getCache, isCacheEnabled } from '../cache';
-import { getEnvString, getEnvFloat, getEnvInt } from '../envars';
+import { getEnvFloat, getEnvInt, getEnvString } from '../envars';
 import logger from '../logger';
 import type {
   ApiModerationProvider,
@@ -92,8 +92,8 @@ export class ReplicateProvider implements ApiProvider {
       prompt = prompt + this.config.prompt.suffix;
     }
 
-    let cache;
-    let cacheKey;
+    let cache: Cache | undefined;
+    let cacheKey: string | undefined;
     if (isCacheEnabled()) {
       cache = await getCache();
       cacheKey = `replicate:${this.modelName}:${JSON.stringify(this.config)}:${prompt}`;
@@ -121,7 +121,7 @@ export class ReplicateProvider implements ApiProvider {
     const userPrompt = messages.find((message) => message.role === 'user')?.content || prompt;
 
     logger.debug(`Calling Replicate: ${prompt}`);
-    let response;
+    let response: any;
     try {
       const inputOptions = {
         max_length: this.config.max_length || getEnvInt('REPLICATE_MAX_LENGTH'),
@@ -151,7 +151,7 @@ export class ReplicateProvider implements ApiProvider {
     }
     logger.debug(`\tReplicate API response: ${JSON.stringify(response)}`);
     try {
-      let formattedOutput;
+      let formattedOutput: string;
       if (Array.isArray(response)) {
         if (response.length === 0 || typeof response[0] === 'string') {
           formattedOutput = response.join('');

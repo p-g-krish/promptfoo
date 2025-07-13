@@ -1,12 +1,12 @@
 import cliState from '../src/cliState';
 import type { EnvVarKey } from '../src/envars';
 import {
-  getEnvString,
   getEnvBool,
-  getEnvInt,
   getEnvFloat,
-  isCI,
+  getEnvInt,
+  getEnvString,
   getMaxEvalTimeMs,
+  isCI,
 } from '../src/envars';
 
 describe('envars', () => {
@@ -242,7 +242,7 @@ describe('envars', () => {
     });
 
     it('should return the default value for a non-existing environment variable', () => {
-      expect(getEnvFloat('OPENAI_TEMPERATURE', 2.718)).toBe(2.718);
+      expect(getEnvFloat('OPENAI_TEMPERATURE', Math.E)).toBe(Math.E);
     });
 
     it('should handle integer values', () => {
@@ -262,7 +262,7 @@ describe('envars', () => {
 
     it('should return the default value when the environment variable is undefined', () => {
       delete process.env.OPENAI_TEMPERATURE;
-      expect(getEnvFloat('OPENAI_TEMPERATURE', 2.718)).toBe(2.718);
+      expect(getEnvFloat('OPENAI_TEMPERATURE', Math.E)).toBe(Math.E);
     });
 
     it('should return undefined when no default value is provided and the environment variable is not set', () => {
@@ -282,8 +282,8 @@ describe('envars', () => {
     });
 
     it('should handle arbitrary string keys for float values', () => {
-      process.env.CUSTOM_FLOAT_VAR = '3.14159';
-      expect(getEnvFloat('CUSTOM_FLOAT_VAR' as EnvVarKey)).toBe(3.14159);
+      process.env.CUSTOM_FLOAT_VAR = 'Math.PI';
+      expect(getEnvFloat('CUSTOM_FLOAT_VAR' as EnvVarKey)).toBe(Math.PI);
     });
   });
 

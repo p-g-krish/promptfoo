@@ -4,7 +4,7 @@ import http from 'http';
 import httpZ from 'http-z';
 import path from 'path';
 import { z } from 'zod';
-import { fetchWithCache, type FetchWithCacheResult } from '../cache';
+import { type FetchWithCacheResult, fetchWithCache } from '../cache';
 import cliState from '../cliState';
 import { importModule } from '../esm';
 import logger from '../logger';
@@ -214,7 +214,7 @@ interface SessionParserData {
 }
 
 export async function createSessionParser(
-  parser: string | Function | undefined,
+  parser: string | ((data: SessionParserData) => string) | undefined,
 ): Promise<(data: SessionParserData) => string> {
   if (!parser) {
     return () => '';
@@ -258,7 +258,10 @@ interface TransformResponseContext {
 }
 
 export async function createTransformResponse(
-  parser: string | Function | undefined,
+  parser:
+    | string
+    | ((data: any, text: string, context?: TransformResponseContext) => ProviderResponse)
+    | undefined,
 ): Promise<(data: any, text: string, context?: TransformResponseContext) => ProviderResponse> {
   if (!parser) {
     return (data, text) => ({ output: data || text });
@@ -468,7 +471,7 @@ function parseRawRequest(input: string) {
 }
 
 export async function createTransformRequest(
-  transform: string | Function | undefined,
+  transform: string | ((prompt: string) => any) | undefined,
 ): Promise<(prompt: string) => any> {
   if (!transform) {
     return (prompt) => prompt;
@@ -766,7 +769,7 @@ export class HttpProvider implements ApiProvider {
 
   private validateContentTypeAndBody(headers: Record<string, string>, body: any): void {
     if (body != null) {
-      if (typeof body == 'object' && !contentTypeIsJson(headers)) {
+      if (typeof body === 'object' && !contentTypeIsJson(headers)) {
         throw new Error(
           'Content-Type is not application/json, but body is an object or array. The body must be a string if the Content-Type is not application/json.',
         );
@@ -933,7 +936,7 @@ export class HttpProvider implements ApiProvider {
     };
 
     const rawText = response.data as string;
-    let parsedData;
+    let parsedData: any;
     try {
       parsedData = JSON.parse(rawText);
     } catch {
@@ -988,7 +991,7 @@ export class HttpProvider implements ApiProvider {
     const protocol = this.url.startsWith('https') || this.config.useHttps ? 'https' : 'http';
     const url = new URL(
       parsedRequest.url,
-      `${protocol}://${parsedRequest.headers['host']}`,
+      `${protocol}://${parsedRequest.headers.host}`,
     ).toString();
 
     // Remove content-length header from raw request if the user added it, it will be added by fetch with the correct value
@@ -1019,7 +1022,7 @@ export class HttpProvider implements ApiProvider {
     }
 
     const rawText = response.data as string;
-    let parsedData;
+    let parsedData: any;
     try {
       parsedData = JSON.parse(rawText);
     } catch {

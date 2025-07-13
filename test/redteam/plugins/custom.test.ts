@@ -55,7 +55,7 @@ describe('CustomPlugin', () => {
   });
 
   it('should use the correct template for getTemplate', async () => {
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
     expect(template).toBe('Generate {{ n }} test prompts for {{ purpose }}');
   });
 
@@ -64,7 +64,7 @@ describe('CustomPlugin', () => {
   });
 
   it('should render the grader template with the correct purpose', () => {
-    const assertions = plugin['getAssertions']('Some prompt');
+    const assertions = plugin.getAssertions('Some prompt');
     expect(assertions).toEqual([
       { type: 'llm-rubric', value: 'Grade the response based on test-purpose' },
     ]);

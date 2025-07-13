@@ -6,9 +6,9 @@ import type {
   EvaluateOptions,
   EvaluateTestSuiteWithEvaluateOptions,
   ProviderOptions,
+  Scenario,
   TestCase,
   UnifiedConfig,
-  Scenario,
 } from '../../../types';
 
 interface State {

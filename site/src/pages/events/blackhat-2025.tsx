@@ -1,5 +1,4 @@
 import Cal, { getCalApi } from '@calcom/embed-react';
-import React, { useEffect } from 'react';
 import Head from '@docusaurus/Head';
 import Link from '@docusaurus/Link';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -7,6 +6,7 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import SecurityIcon from '@mui/icons-material/Security';
 import SpeedIcon from '@mui/icons-material/Speed';
 import Layout from '@theme/Layout';
+import React, { useEffect } from 'react';
 import styles from './blackhat-2025.module.css';
 
 export default function BlackHat2025(): JSX.Element {

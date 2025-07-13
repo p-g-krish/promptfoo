@@ -13,6 +13,12 @@ export enum TransformInputType {
   VARS = 'vars',
 }
 
+// Define proper type for transform functions
+export type TransformFunction = (
+  input: string | object,
+  context: { vars: Vars },
+) => Promise<any> | any;
+
 /**
  * Parses a file path string to extract the file path and function name.
  * @param filePath - The file path string, potentially including a function name.
@@ -26,14 +32,14 @@ function parseFilePathAndFunctionName(filePath: string): [string, string | undef
 /**
  * Retrieves a JavaScript transform function from a file.
  * @param filePath - The path to the JavaScript file.
- * @param functionName - Optional name of the function to retrieve.
+ * @param functionName - Optional name of a specific function to retrieve.
  * @returns A Promise resolving to the requested function.
  * @throws Error if the file doesn't export a valid function.
  */
 async function getJavascriptTransformFunction(
   filePath: string,
   functionName?: string,
-): Promise<Function> {
+): Promise<TransformFunction> {
   const requiredModule = await importModule(filePath);
 
   if (functionName && typeof requiredModule[functionName] === 'function') {
@@ -57,7 +63,7 @@ async function getJavascriptTransformFunction(
 function getPythonTransformFunction(
   filePath: string,
   functionName: string = 'get_transform',
-): Function {
+): TransformFunction {
   return async (output: string, context: { vars: Vars }) => {
     return runPython(filePath, functionName, [output, context]);
   };
@@ -69,7 +75,7 @@ function getPythonTransformFunction(
  * @returns A Promise resolving to the requested function.
  * @throws Error if the file format is unsupported.
  */
-async function getFileTransformFunction(filePath: string): Promise<Function> {
+async function getFileTransformFunction(filePath: string): Promise<TransformFunction> {
   const [actualFilePath, functionName] = parseFilePathAndFunctionName(
     filePath.slice('file://'.length),
   );
@@ -89,8 +95,15 @@ async function getFileTransformFunction(filePath: string): Promise<Function> {
  * @param code - The JavaScript code to convert into a function.
  * @returns A Function created from the provided code.
  */
-function getInlineTransformFunction(code: string, inputType: TransformInputType): Function {
-  return new Function(inputType, 'context', code.includes('\n') ? code : `return ${code}`);
+function getInlineTransformFunction(
+  code: string,
+  inputType: TransformInputType,
+): TransformFunction {
+  return new Function(
+    inputType,
+    'context',
+    code.includes('\n') ? code : `return ${code}`,
+  ) as TransformFunction;
 }
 
 /**
@@ -101,8 +114,8 @@ function getInlineTransformFunction(code: string, inputType: TransformInputType)
 async function getTransformFunction(
   codeOrFilepath: string,
   inputType: TransformInputType,
-): Promise<Function | null> {
-  let transformFn: Function | null = null;
+): Promise<TransformFunction | null> {
+  let transformFn: TransformFunction | null = null;
   if (codeOrFilepath.startsWith('file://')) {
     try {
       transformFn = await getFileTransformFunction(codeOrFilepath);

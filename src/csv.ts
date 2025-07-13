@@ -1,6 +1,6 @@
 // Helpers for parsing CSV eval files, shared by frontend and backend. Cannot import native modules.
 import logger from './logger';
-import type { Assertion, AssertionType, CsvRow, TestCase, BaseAssertionTypes } from './types';
+import type { Assertion, AssertionType, BaseAssertionTypes, CsvRow, TestCase } from './types';
 import { BaseAssertionTypesSchema } from './types';
 import { isJavascriptFile } from './util/fileExtensions';
 import invariant from './util/invariant';
@@ -195,11 +195,9 @@ export function testCaseFromCsvRow(row: CsvRow): TestCase {
             .map((v) => v.replace('\\,', ','));
           metadata[arrayKey] = values;
         }
-      } else {
+      } else if (value.trim() !== '') {
         // Handle single value metadata
-        if (value.trim() !== '') {
-          metadata[metadataKey] = value;
-        }
+        metadata[metadataKey] = value;
       }
     } else if (key === '__metadata' && !uniqueErrorMessages.has(key)) {
       uniqueErrorMessages.add(key);

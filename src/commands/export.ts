@@ -11,7 +11,7 @@ export function exportCommand(program: Command) {
     .option('-o, --output [outputPath]', 'Output path for the exported file')
     .action(async (evalId, cmdObj) => {
       try {
-        let result;
+        let result: Eval | null;
         if (evalId === 'latest') {
           result = await Eval.latest();
         } else {

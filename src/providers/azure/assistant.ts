@@ -1,6 +1,5 @@
 import path from 'path';
-import { fetchWithCache } from '../../cache';
-import { getCache, isCacheEnabled } from '../../cache';
+import { fetchWithCache, getCache, isCacheEnabled } from '../../cache';
 import cliState from '../../cliState';
 import { importModule } from '../../esm';
 import logger from '../../logger';
@@ -97,7 +96,7 @@ interface RunStepsResponse {
 
 export class AzureAssistantProvider extends AzureGenericProvider {
   assistantConfig: AzureAssistantOptions;
-  private loadedFunctionCallbacks: Record<string, Function> = {};
+  private loadedFunctionCallbacks: Record<string, (...args: any[]) => any> = {};
 
   constructor(deploymentName: string, options: AzureAssistantProviderOptions = {}) {
     super(deploymentName, options);
@@ -147,7 +146,7 @@ export class AzureAssistantProvider extends AzureGenericProvider {
    * @param fileRef The file reference in the format 'file://path/to/file:functionName'
    * @returns The loaded function
    */
-  private async loadExternalFunction(fileRef: string): Promise<Function> {
+  private async loadExternalFunction(fileRef: string): Promise<(...args: any[]) => any> {
     let filePath = fileRef.slice('file://'.length);
     let functionName: string | undefined;
 
@@ -404,42 +403,40 @@ export class AzureAssistantProvider extends AzureGenericProvider {
             threadResponse.id,
             completedRun,
           );
-        } else {
-          if (completedRun.last_error) {
-            // Check if the error is a content filter error
-            const errorCode = completedRun.last_error.code || '';
-            const errorMessage = completedRun.last_error.message || '';
+        } else if (completedRun.last_error) {
+          // Check if the error is a content filter error
+          const errorCode = completedRun.last_error.code || '';
+          const errorMessage = completedRun.last_error.message || '';
 
-            if (errorCode === 'content_filter' || this.isContentFilterError(errorMessage)) {
-              const lowerErrorMessage = errorMessage.toLowerCase();
-              const isInputFiltered =
-                lowerErrorMessage.includes('prompt') || lowerErrorMessage.includes('input');
-              const isOutputFiltered =
-                lowerErrorMessage.includes('output') || lowerErrorMessage.includes('response');
+          if (errorCode === 'content_filter' || this.isContentFilterError(errorMessage)) {
+            const lowerErrorMessage = errorMessage.toLowerCase();
+            const isInputFiltered =
+              lowerErrorMessage.includes('prompt') || lowerErrorMessage.includes('input');
+            const isOutputFiltered =
+              lowerErrorMessage.includes('output') || lowerErrorMessage.includes('response');
 
-              // Ensure mutual exclusivity - prioritize input if both are detected
-              const flaggedInput = isInputFiltered;
-              const flaggedOutput = !isInputFiltered && (isOutputFiltered || !isOutputFiltered);
+            // Ensure mutual exclusivity - prioritize input if both are detected
+            const flaggedInput = isInputFiltered;
+            const flaggedOutput = !isInputFiltered && (isOutputFiltered || !isOutputFiltered);
 
-              result = {
-                output:
-                  "The generated content was filtered due to triggering Azure OpenAI Service's content filtering system.",
-                guardrails: {
-                  flagged: true,
-                  flaggedInput,
-                  flaggedOutput,
-                },
-              };
-            } else {
-              result = {
-                error: `Thread run failed: ${errorCode} - ${errorMessage}`,
-              };
-            }
+            result = {
+              output:
+                "The generated content was filtered due to triggering Azure OpenAI Service's content filtering system.",
+              guardrails: {
+                flagged: true,
+                flaggedInput,
+                flaggedOutput,
+              },
+            };
           } else {
             result = {
-              error: `Thread run failed with status: ${completedRun.status}`,
+              error: `Thread run failed: ${errorCode} - ${errorMessage}`,
             };
           }
+        } else {
+          result = {
+            error: `Thread run failed with status: ${completedRun.status}`,
+          };
         }
       }
 

@@ -407,7 +407,7 @@ describe('OpenAI Provider', () => {
           apiKey: 'test-key',
           functionToolCallbacks: {
             string_function:
-              '(args, context) => { return `received: ${JSON.stringify(args)} with context: ${JSON.stringify(context)}`; }',
+              '(args, context) => { return "received: " + JSON.stringify(args) + " with context: " + JSON.stringify(context); }',
           },
         },
       });

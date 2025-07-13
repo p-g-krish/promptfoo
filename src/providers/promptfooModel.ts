@@ -1,12 +1,12 @@
 import { cloudConfig } from '../globalConfig/cloud';
 import logger from '../logger';
 import type {
+  ApiProvider,
   CallApiContextParams,
   CallApiOptionsParams,
   ProviderOptions,
   ProviderResponse,
 } from '../types/providers';
-import type { ApiProvider } from '../types/providers';
 
 // Define types for the expected model API response structure
 interface ModelMessage {
@@ -80,7 +80,7 @@ export class PromptfooModelProvider implements ApiProvider {
 
     try {
       // Parse the prompt as chat messages if it's a JSON string
-      let messages;
+      let messages: any;
       try {
         messages = JSON.parse(prompt);
         if (!Array.isArray(messages)) {

@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import type { Metadata } from 'openai/resources/shared';
 import path from 'path';
-import { OpenAiGenericProvider } from '.';
 import cliState from '../../cliState';
 import { importModule } from '../../esm';
 import logger from '../../logger';
@@ -10,7 +9,8 @@ import type { EnvOverrides } from '../../types/env';
 import { maybeLoadToolsFromExternalFile } from '../../util';
 import { isJavascriptFile } from '../../util/fileExtensions';
 import { sleep } from '../../util/time';
-import { REQUEST_TIMEOUT_MS, parseChatPrompt, toTitleCase } from '../shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS, toTitleCase } from '../shared';
+import { OpenAiGenericProvider } from '.';
 import type { AssistantFunctionCallback, CallbackContext, OpenAiSharedOptions } from './types';
 import { failApiCall, getTokenUsage } from './util';
 
@@ -41,7 +41,7 @@ type OpenAiAssistantOptions = OpenAiSharedOptions & {
 export class OpenAiAssistantProvider extends OpenAiGenericProvider {
   assistantId: string;
   assistantConfig: OpenAiAssistantOptions;
-  private loadedFunctionCallbacks: Record<string, Function> = {};
+  private loadedFunctionCallbacks: Record<string, (...args: any[]) => any> = {};
 
   constructor(
     assistantId: string,
@@ -95,7 +95,7 @@ export class OpenAiAssistantProvider extends OpenAiGenericProvider {
    * @param fileRef The file reference in the format 'file://path/to/file:functionName'
    * @returns The loaded function
    */
-  private async loadExternalFunction(fileRef: string): Promise<Function> {
+  private async loadExternalFunction(fileRef: string): Promise<(...args: any[]) => any> {
     let filePath = fileRef.slice('file://'.length);
     let functionName: string | undefined;
 
@@ -183,7 +183,7 @@ export class OpenAiAssistantProvider extends OpenAiGenericProvider {
           context ? ` and context: ${JSON.stringify(context)}` : ''
         }`,
       );
-      let parsedArgs;
+      let parsedArgs: any;
       try {
         parsedArgs = JSON.parse(args);
       } catch (error) {
@@ -365,7 +365,7 @@ export class OpenAiAssistantProvider extends OpenAiGenericProvider {
 
     // Get run steps
     logger.debug(`Calling OpenAI API, getting thread run steps for ${run.thread_id}`);
-    let steps;
+    let steps: any;
     try {
       steps = await openai.beta.threads.runs.steps.list(run.id, {
         thread_id: run.thread_id,
@@ -380,7 +380,7 @@ export class OpenAiAssistantProvider extends OpenAiGenericProvider {
     for (const step of steps.data) {
       if (step.step_details.type === 'message_creation') {
         logger.debug(`Calling OpenAI API, getting message ${step.id}`);
-        let message;
+        let message: any;
         try {
           message = await openai.beta.threads.messages.retrieve(
             step.step_details.message_creation.message_id,

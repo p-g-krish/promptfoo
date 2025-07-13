@@ -1,5 +1,4 @@
 import WebSocket from 'ws';
-import { OpenAiGenericProvider } from '.';
 import logger from '../../logger';
 import type {
   CallApiContextParams,
@@ -9,6 +8,7 @@ import type {
 } from '../../types';
 import type { EnvOverrides } from '../../types/env';
 import { maybeLoadToolsFromExternalFile } from '../../util';
+import { OpenAiGenericProvider } from '.';
 import type { OpenAiCompletionOptions } from './types';
 import { OPENAI_REALTIME_MODELS } from './util';
 
@@ -286,7 +286,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
                 // Add tools if configured
                 if (this.config.tools && this.config.tools.length > 0) {
                   responseEvent.response.tools = maybeLoadToolsFromExternalFile(this.config.tools);
-                  if (Object.prototype.hasOwnProperty.call(this.config, 'tool_choice')) {
+                  if (Object.hasOwn(this.config, 'tool_choice')) {
                     responseEvent.response.tool_choice = this.config.tool_choice;
                   } else {
                     responseEvent.response.tool_choice = 'auto';
@@ -412,7 +412,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
               logger.debug('Output item complete');
               break;
 
-            case 'response.function_call_arguments.done':
+            case 'response.function_call_arguments.done': {
               // Find the function call in our pending list and update its arguments
               const callIndex = pendingFunctionCalls.findIndex(
                 (call) => call.id === message.call_id,
@@ -421,8 +421,9 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
                 pendingFunctionCalls[callIndex].arguments = message.arguments;
               }
               break;
+            }
 
-            case 'response.done':
+            case 'response.done': {
               responseDone = true;
               usage = message.response.usage;
 
@@ -540,6 +541,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
                   functionCallResults.length > 0 ? functionCallResults : undefined,
               });
               break;
+            }
 
             case 'rate_limits.updated':
               // Store rate limits in metadata if needed
@@ -673,7 +675,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
       }
 
       // Use a persistent connection if we should maintain conversation context
-      let result;
+      let result: any;
       if (this.config.maintainContext === true) {
         result = await this.persistentWebSocketRequest(promptText);
       } else {
@@ -875,7 +877,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
                 // Add tools if configured
                 if (this.config.tools && this.config.tools.length > 0) {
                   responseEvent.response.tools = maybeLoadToolsFromExternalFile(this.config.tools);
-                  if (Object.prototype.hasOwnProperty.call(this.config, 'tool_choice')) {
+                  if (Object.hasOwn(this.config, 'tool_choice')) {
                     responseEvent.response.tool_choice = this.config.tool_choice;
                   } else {
                     responseEvent.response.tool_choice = 'auto';
@@ -1001,7 +1003,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
               logger.debug('Output item complete');
               break;
 
-            case 'response.function_call_arguments.done':
+            case 'response.function_call_arguments.done': {
               // Find the function call in our pending list and update its arguments
               const callIndex = pendingFunctionCalls.findIndex(
                 (call) => call.id === message.call_id,
@@ -1010,8 +1012,9 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
                 pendingFunctionCalls[callIndex].arguments = message.arguments;
               }
               break;
+            }
 
-            case 'response.done':
+            case 'response.done': {
               responseDone = true;
               usage = message.response.usage;
 
@@ -1129,6 +1132,7 @@ export class OpenAiRealtimeProvider extends OpenAiGenericProvider {
                   functionCallResults.length > 0 ? functionCallResults : undefined,
               });
               break;
+            }
 
             case 'rate_limits.updated':
               // Store rate limits in metadata if needed

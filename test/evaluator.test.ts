@@ -15,7 +15,7 @@ import { runExtensionHook } from '../src/evaluatorHelpers';
 import logger from '../src/logger';
 import { runDbMigrations } from '../src/migrate';
 import Eval from '../src/models/eval';
-import { type ApiProvider, type TestSuite, type Prompt, ResultFailureReason } from '../src/types';
+import { type ApiProvider, type Prompt, ResultFailureReason, type TestSuite } from '../src/types';
 import { processConfigFileReferences } from '../src/util/fileReference';
 import { sleep } from '../src/util/time';
 
@@ -46,16 +46,16 @@ jest.mock('../src/util/transform', () => ({
         }
       }
       // Handle template literal transforms
-      if (code === '`Transformed: ${output}`') {
+      if (code === '`Transformed: $' + '{output}`') {
         return `Transformed: ${input}`;
       }
-      if (code === '`ProviderTransformed: ${output}`') {
+      if (code === '`ProviderTransformed: $' + '{output}`') {
         return `ProviderTransformed: ${input}`;
       }
-      if (code === '`Provider: ${output}`') {
+      if (code === '`Provider: $' + '{output}`') {
         return `Provider: ${input}`;
       }
-      if (code === '`Test: ${output}`') {
+      if (code === '`Test: $' + '{output}`') {
         return `Test: ${input}`;
       }
       if (code === '"testTransformed " + output') {
@@ -102,10 +102,10 @@ jest.mock('../src/util/transform', () => ({
         return input + '-test';
       }
       // Handle template literal transforms with backticks
-      if (code === '`Transform: ${output}`') {
+      if (code === '`Transform: $' + '{output}`') {
         return `Transform: ${input}`;
       }
-      if (code === '`Postprocess: ${output}`') {
+      if (code === '`Postprocess: $' + '{output}`') {
         return `Postprocess: ${input}`;
       }
       // Handle transformVars with test2UpperCase
@@ -934,7 +934,7 @@ describe('evaluator', () => {
         output: 'Original output',
         tokenUsage: { total: 10, prompt: 5, completion: 5, cached: 0, numRequests: 1 },
       }),
-      transform: '`Transformed: ${output}`',
+      transform: '`Transformed: $' + '{output}`',
     };
 
     const testSuite: TestSuite = {
@@ -1088,7 +1088,7 @@ describe('evaluator', () => {
         output: 'Original output',
         tokenUsage: { total: 10, prompt: 5, completion: 5, cached: 0, numRequests: 1 },
       }),
-      transform: '`ProviderTransformed: ${output}`',
+      transform: '`ProviderTransformed: $' + '{output}`',
     };
 
     const testSuite: TestSuite = {
@@ -1669,7 +1669,7 @@ describe('evaluator', () => {
         output: 'Original output',
         tokenUsage: { total: 10, prompt: 5, completion: 5, cached: 0, numRequests: 1 },
       }),
-      transform: '`Provider: ${output}`',
+      transform: '`Provider: $' + '{output}`',
     };
 
     const testSuite: TestSuite = {
@@ -1684,7 +1684,7 @@ describe('evaluator', () => {
             },
           ],
           options: {
-            transform: '`Test: ${output}`',
+            transform: '`Test: $' + '{output}`',
           },
         },
       ],
@@ -1706,7 +1706,7 @@ describe('evaluator', () => {
         output: 'Original output',
         tokenUsage: { total: 10, prompt: 5, completion: 5, cached: 0, numRequests: 1 },
       }),
-      transform: '`Provider: ${output}`',
+      transform: '`Provider: $' + '{output}`',
     };
 
     const testSuite: TestSuite = {
@@ -1721,7 +1721,7 @@ describe('evaluator', () => {
             },
           ],
           options: {
-            postprocess: '`Postprocess: ${output}`',
+            postprocess: '`Postprocess: $' + '{output}`',
           },
         },
       ],
@@ -1747,7 +1747,7 @@ describe('evaluator', () => {
         output: 'Original output',
         tokenUsage: { total: 10, prompt: 5, completion: 5, cached: 0, numRequests: 1 },
       }),
-      transform: '`Provider: ${output}`',
+      transform: '`Provider: $' + '{output}`',
     };
 
     const testSuite: TestSuite = {
@@ -1762,8 +1762,8 @@ describe('evaluator', () => {
             },
           ],
           options: {
-            transform: '`Transform: ${output}`',
-            postprocess: '`Postprocess: ${output}`', // This should be ignored
+            transform: '`Transform: $' + '{output}`',
+            postprocess: '`Postprocess: $' + '{output}`', // This should be ignored
           },
         },
       ],

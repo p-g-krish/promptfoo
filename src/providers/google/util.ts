@@ -8,8 +8,8 @@ import { maybeLoadFromExternalFile } from '../../util/file';
 import { getAjv } from '../../util/json';
 import { getNunjucksEngine } from '../../util/templates';
 import { parseChatPrompt } from '../shared';
-import { VALID_SCHEMA_TYPES } from './types';
 import type { Content, FunctionCall, Part, Tool } from './types';
+import { VALID_SCHEMA_TYPES } from './types';
 
 const ajv = getAjv();
 // property_ordering is an optional field sometimes present in gemini tool configs, but ajv doesn't know about it.
@@ -137,7 +137,7 @@ export function maybeCoerceToGeminiFormat(contents: any): {
 
   if (parseResult.success) {
     // Check for native Gemini system_instruction format
-    let systemInst = undefined;
+    let systemInst: any;
     if (typeof contents === 'object' && 'system_instruction' in contents) {
       systemInst = contents.system_instruction;
       // We need to modify the contents to remove system_instruction
@@ -263,7 +263,7 @@ export function maybeCoerceToGeminiFormat(contents: any): {
 let cachedAuth: GoogleAuth | undefined;
 export async function getGoogleClient() {
   if (!cachedAuth) {
-    let GoogleAuth;
+    let GoogleAuth: any;
     try {
       const importedModule = await import('google-auth-library');
       GoogleAuth = importedModule.GoogleAuth;
@@ -577,7 +577,7 @@ function normalizeSchemaTypes(schemaNode: any): any {
   const newNode: { [key: string]: any } = {};
 
   for (const key in schemaNode) {
-    if (Object.prototype.hasOwnProperty.call(schemaNode, key)) {
+    if (Object.hasOwn(schemaNode, key)) {
       const value = schemaNode[key];
 
       if (key === 'type') {
@@ -630,7 +630,7 @@ export function validateFunctionCall(
     } else if (Array.isArray(parsedOutput)) {
       // Vertex and AIS Format
       functionCalls = parsedOutput
-        .filter((obj) => Object.prototype.hasOwnProperty.call(obj, 'functionCall'))
+        .filter((obj) => Object.hasOwn(obj, 'functionCall'))
         .map((obj) => obj.functionCall);
     } else {
       throw new Error();
@@ -656,7 +656,7 @@ export function validateFunctionCall(
     }
     if (Object.keys(functionArgs).length !== 0 && functionSchema?.parameters) {
       const parameterSchema = normalizeSchemaTypes(functionSchema.parameters);
-      let validate;
+      let validate: ValidateFunction;
       try {
         validate = ajv.compile(parameterSchema as AnySchema);
       } catch (err) {

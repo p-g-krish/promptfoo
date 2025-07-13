@@ -29,14 +29,14 @@ describe('homoglyph strategy', () => {
   describe('toHomoglyphs', () => {
     it('should convert lowercase letters', () => {
       expect(toHomoglyphs('abcdefghijklmnopqrstuvwxyz')).not.toBe('abcdefghijklmnopqrstuvwxyz');
-      expect(toHomoglyphs('a')).toBe(homoglyphMap['a']);
-      expect(toHomoglyphs('z')).toBe(homoglyphMap['z']);
+      expect(toHomoglyphs('a')).toBe(homoglyphMap.a);
+      expect(toHomoglyphs('z')).toBe(homoglyphMap.z);
     });
 
     it('should convert uppercase letters', () => {
       expect(toHomoglyphs('ABCDEFGHIJKLMNOPQRSTUVWXYZ')).not.toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
-      expect(toHomoglyphs('A')).toBe(homoglyphMap['A']);
-      expect(toHomoglyphs('Z')).toBe(homoglyphMap['Z']);
+      expect(toHomoglyphs('A')).toBe(homoglyphMap.A);
+      expect(toHomoglyphs('Z')).toBe(homoglyphMap.Z);
     });
 
     it('should convert numbers', () => {
@@ -121,7 +121,7 @@ describe('homoglyph strategy', () => {
       const testCase: TestCase = { vars: { prompt: longString } };
       const result = addHomoglyphs([testCase], 'prompt');
       expect(result[0].vars!.prompt).not.toBe(longString);
-      expect(result[0].vars!.prompt).toBe(homoglyphMap['a'].repeat(1000));
+      expect(result[0].vars!.prompt).toBe(homoglyphMap.a.repeat(1000));
     });
 
     it('should handle special characters', () => {

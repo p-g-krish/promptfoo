@@ -370,31 +370,29 @@ export async function runAssertions({
     assertion: Assertion;
     assertResult: AssertionsResult;
     index: number;
-  }[] = test.assert
-    .map((assertion, i) => {
-      if (assertion.type === 'assert-set') {
-        const subAssertResult = new AssertionsResult({
-          threshold: assertion.threshold,
-          parentAssertionSet: {
-            assertionSet: assertion,
-            index: i,
-          },
-        });
+  }[] = test.assert.flatMap((assertion, i) => {
+    if (assertion.type === 'assert-set') {
+      const subAssertResult = new AssertionsResult({
+        threshold: assertion.threshold,
+        parentAssertionSet: {
+          assertionSet: assertion,
+          index: i,
+        },
+      });
 
-        subAssertResults.push(subAssertResult);
+      subAssertResults.push(subAssertResult);
 
-        return assertion.assert.map((subAssert, j) => {
-          return {
-            assertion: subAssert,
-            assertResult: subAssertResult,
-            index: j,
-          };
-        });
-      }
+      return assertion.assert.map((subAssert, j) => {
+        return {
+          assertion: subAssert,
+          assertResult: subAssertResult,
+          index: j,
+        };
+      });
+    }
 
-      return { assertion, assertResult: mainAssertResult, index: i };
-    })
-    .flat();
+    return { assertion, assertResult: mainAssertResult, index: i };
+  });
 
   await async.forEachOfLimit(
     asserts,

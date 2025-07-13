@@ -150,11 +150,11 @@ export async function getPluginSeverityOverridesFromCloud(cloudProviderId: strin
       return {
         id: pluginSeverityOverride.id,
         severities: pluginSeverityOverride.members.reduce(
-          (acc: Record<Plugin, Severity>, member: { pluginId: Plugin; severity: Severity }) => ({
-            ...acc,
-            [member.pluginId]: member.severity,
-          }),
-          {},
+          (acc: Record<Plugin, Severity>, member: { pluginId: Plugin; severity: Severity }) => {
+            acc[member.pluginId] = member.severity;
+            return acc;
+          },
+          {} as Record<Plugin, Severity>,
         ),
       };
     } else {

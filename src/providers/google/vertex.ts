@@ -8,8 +8,8 @@ import type {
   ApiEmbeddingProvider,
   ApiProvider,
   CallApiContextParams,
-  ProviderResponse,
   ProviderEmbeddingResponse,
+  ProviderResponse,
   TokenUsage,
 } from '../../types';
 import type { EnvOverrides } from '../../types/env';
@@ -21,18 +21,18 @@ import { parseChatPrompt, REQUEST_TIMEOUT_MS } from '../shared';
 import type { ClaudeRequest, ClaudeResponse, CompletionOptions } from './types';
 import type {
   GeminiApiResponse,
-  GeminiResponseData,
   GeminiErrorResponse,
   GeminiFormat,
+  GeminiResponseData,
   Palm2ApiResponse,
 } from './util';
 import {
+  formatCandidateContents,
   geminiFormatAndSystemInstructions,
   getCandidate,
   getGoogleClient,
   loadFile,
   mergeParts,
-  formatCandidateContents,
 } from './util';
 
 // Type for Google API errors - using 'any' to avoid gaxios dependency
@@ -121,7 +121,7 @@ class VertexGenericProvider implements ApiProvider {
 export class VertexChatProvider extends VertexGenericProvider {
   private mcpClient: MCPClient | null = null;
   private initializationPromise: Promise<void> | null = null;
-  private loadedFunctionCallbacks: Record<string, Function> = {};
+  private loadedFunctionCallbacks: Record<string, (...args: any[]) => any> = {};
 
   constructor(
     modelName: string,
@@ -178,7 +178,7 @@ export class VertexChatProvider extends VertexGenericProvider {
     const cache = await getCache();
     const cacheKey = `vertex:claude:${this.modelName}:${JSON.stringify(body)}`;
 
-    let cachedResponse;
+    let cachedResponse: string | null | undefined;
     if (isCacheEnabled()) {
       cachedResponse = await cache.get(cacheKey);
       if (cachedResponse) {
@@ -305,8 +305,8 @@ export class VertexChatProvider extends VertexGenericProvider {
     const cache = await getCache();
     const cacheKey = `vertex:${this.modelName}:${JSON.stringify(body)}`;
 
-    let response;
-    let cachedResponse;
+    let response: ProviderResponse | undefined;
+    let cachedResponse: string | null | undefined;
     if (isCacheEnabled()) {
       cachedResponse = await cache.get(cacheKey);
       if (cachedResponse) {
@@ -320,7 +320,7 @@ export class VertexChatProvider extends VertexGenericProvider {
       }
     }
     if (response === undefined) {
-      let data;
+      let data: GeminiApiResponse | GeminiErrorResponse[];
       try {
         const { client, projectId } = await getGoogleClient();
         const url = `https://${this.getApiHost()}/${this.getApiVersion()}/projects/${projectId}/locations/${this.getRegion()}/publishers/${this.getPublisher()}/models/${
@@ -366,7 +366,7 @@ export class VertexChatProvider extends VertexGenericProvider {
           };
         }
         const dataWithResponse = data as GeminiResponseData[];
-        let output;
+        let output: string | undefined;
         for (const datum of dataWithResponse) {
           const candidate = getCandidate(datum);
           if (candidate.finishReason && candidate.finishReason === 'SAFETY') {
@@ -516,7 +516,7 @@ export class VertexChatProvider extends VertexGenericProvider {
     const cache = await getCache();
     const cacheKey = `vertex:palm2:${JSON.stringify(body)}`;
 
-    let cachedResponse;
+    let cachedResponse: string | null | undefined;
     if (isCacheEnabled()) {
       cachedResponse = await cache.get(cacheKey);
       if (cachedResponse) {
@@ -639,7 +639,7 @@ export class VertexChatProvider extends VertexGenericProvider {
     const cache = await getCache();
     const cacheKey = `vertex:llama:${this.modelName}:${JSON.stringify(body)}`;
 
-    let cachedResponse;
+    let cachedResponse: string | null | undefined;
     if (isCacheEnabled()) {
       cachedResponse = await cache.get(cacheKey);
       if (cachedResponse) {
@@ -750,7 +750,7 @@ export class VertexChatProvider extends VertexGenericProvider {
    * @param fileRef The file reference in the format 'file://path/to/file:functionName'
    * @returns The loaded function
    */
-  private async loadExternalFunction(fileRef: string): Promise<Function> {
+  private async loadExternalFunction(fileRef: string): Promise<(...args: any[]) => any> {
     let filePath = fileRef.slice('file://'.length);
     let functionName: string | undefined;
 

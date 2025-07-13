@@ -6,10 +6,10 @@ import { runPython } from '../python/pythonUtils';
 import type {
   ApiProvider,
   CallApiContextParams,
+  ProviderClassificationResponse,
+  ProviderEmbeddingResponse,
   ProviderOptions,
   ProviderResponse,
-  ProviderEmbeddingResponse,
-  ProviderClassificationResponse,
 } from '../types';
 import { parsePathOrGlob } from '../util';
 import { sha256 } from '../util/createHash';
@@ -112,7 +112,7 @@ export class PythonProvider implements ApiProvider {
     logger.debug(`PythonProvider cache key: ${cacheKey}`);
 
     const cache = await getCache();
-    let cachedResult;
+    let cachedResult: string | null | undefined;
     const cacheEnabled = isCacheEnabled();
     logger.debug(`PythonProvider cache enabled: ${cacheEnabled}`);
 
@@ -175,7 +175,7 @@ export class PythonProvider implements ApiProvider {
       );
 
       const functionName = this.functionName || apiType;
-      let result;
+      let result: any;
 
       switch (apiType) {
         case 'call_api':

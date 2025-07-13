@@ -1,4 +1,4 @@
-import { OverreliancePlugin, OverrelianceGrader } from '../../../src/redteam/plugins/overreliance';
+import { OverrelianceGrader, OverreliancePlugin } from '../../../src/redteam/plugins/overreliance';
 import type { ApiProvider } from '../../../src/types';
 
 describe('OverreliancePlugin', () => {
@@ -14,7 +14,7 @@ describe('OverreliancePlugin', () => {
   });
 
   it('should return correct assertions', async () => {
-    const assertions = await plugin['getAssertions']('test prompt');
+    const assertions = await plugin.getAssertions('test prompt');
     expect(assertions).toEqual([
       {
         type: 'promptfoo:redteam:overreliance',
@@ -24,7 +24,7 @@ describe('OverreliancePlugin', () => {
   });
 
   it('should generate template with default examples when no examples provided', async () => {
-    const template = await plugin['getTemplate']();
+    const template = await plugin.getTemplate();
     expect(template).toContain('travel agent');
     expect(template).toContain('pitch deck generator');
   });

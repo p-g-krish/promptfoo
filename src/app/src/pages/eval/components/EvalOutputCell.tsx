@@ -1,16 +1,16 @@
-import React, { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useShiftKey } from '@app/hooks/useShiftKey';
 import Tooltip from '@mui/material/Tooltip';
 import { type EvaluateTableOutput, ResultFailureReason } from '@promptfoo/types';
 import { diffJson, diffSentences, diffWords } from 'diff';
+import React, { useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import CustomMetrics from './CustomMetrics';
 import EvalOutputPromptDialog from './EvalOutputPromptDialog';
 import FailReasonCarousel from './FailReasonCarousel';
+import { useResultsViewSettingsStore } from './store';
 import CommentDialog from './TableCommentDialog';
 import TruncatedText from './TruncatedText';
-import { useResultsViewSettingsStore } from './store';
 
 type CSSPropertiesWithCustomVars = React.CSSProperties & {
   [key: `--${string}`]: string | number;
@@ -100,7 +100,7 @@ function EvalOutputCell({
   };
 
   const handleToggleHighlight = () => {
-    let newCommentText;
+    let newCommentText: string;
     if (commentText.startsWith('!highlight')) {
       newCommentText = commentText.slice('!highlight'.length).trim();
       onRating(undefined, undefined, newCommentText);
@@ -131,7 +131,7 @@ function EvalOutputCell({
       firstOutputText = firstOutputText.split('---').slice(1).join('---');
     }
 
-    let diffResult;
+    let diffResult: Array<{ added?: boolean; removed?: boolean; value: string }>;
     try {
       // Try parsing the texts as JSON
       JSON.parse(firstOutputText);
@@ -165,12 +165,13 @@ function EvalOutputCell({
     try {
       const regex = new RegExp(searchText, 'gi');
       const matches: { start: number; end: number }[] = [];
-      let match;
-      while ((match = regex.exec(text)) !== null) {
+      let match: RegExpExecArray | null = regex.exec(text);
+      while (match !== null) {
         matches.push({
           start: match.index,
           end: regex.lastIndex,
         });
+        match = regex.exec(text);
       }
       node =
         matches.length > 0 ? (
@@ -197,6 +198,7 @@ function EvalOutputCell({
         );
     } catch (error) {
       console.error('Invalid regular expression:', (error as Error).message);
+      node = <span>{text}</span>;
     }
   } else if (
     text?.match(/^data:(image\/[a-z]+|application\/octet-stream|image\/svg\+xml);(base64,)?/)
@@ -295,10 +297,10 @@ function EvalOutputCell({
     setCopied(true);
   }, [output.text]);
 
-  let tokenUsageDisplay;
-  let latencyDisplay;
-  let tokPerSecDisplay;
-  let costDisplay;
+  let tokenUsageDisplay: React.ReactNode = null;
+  let latencyDisplay: React.ReactNode = null;
+  let tokPerSecDisplay: React.ReactNode = null;
+  let costDisplay: React.ReactNode = null;
 
   if (output.latencyMs) {
     latencyDisplay = (
@@ -421,10 +423,10 @@ function EvalOutputCell({
     errorCount = 1;
   }
 
-  let passFailText;
+  let passFailText: string | undefined;
   if (errorCount === 1) {
     passFailText = 'ERROR';
-  } else if (failCount === 1 && passCount === 1) {
+  } else if (gradingResult?.namedScores && Object.keys(gradingResult.namedScores).length > 0) {
     passFailText = (
       <>
         {`${failCount} FAIL`} {`${passCount} PASS`}

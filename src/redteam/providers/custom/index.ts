@@ -374,14 +374,14 @@ export class CustomProvider implements ApiProvider {
         }
 
         if (lastResponse.sessionId && this.stateful) {
-          vars['sessionId'] = lastResponse.sessionId;
+          vars.sessionId = lastResponse.sessionId;
           if (!context) {
             context = {
               vars: { ...vars, sessionId: lastResponse.sessionId },
               prompt,
             };
           }
-          context.vars['sessionId'] = lastResponse.sessionId;
+          context.vars.sessionId = lastResponse.sessionId;
         }
 
         // Check if the target is asking a blocking question that needs an answer to proceed
@@ -427,9 +427,9 @@ export class CustomProvider implements ApiProvider {
           // Update lastResponse to the unblocking response and continue
           lastResponse = unblockingResponse;
           if (lastResponse.sessionId && this.stateful) {
-            vars['sessionId'] = lastResponse.sessionId;
+            vars.sessionId = lastResponse.sessionId;
             if (context) {
-              context.vars['sessionId'] = lastResponse.sessionId;
+              context.vars.sessionId = lastResponse.sessionId;
             }
           }
         }

@@ -15,24 +15,27 @@
     "indentStyle": "space",
     "indentWidth": 2,
     "lineWidth": 100,
-    "lineEnding": "lf"
+    "lineEnding": "lf",
+    "attributePosition": "auto"
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false,
+      "recommended": true,
       "complexity": {
         "noUselessConstructor": "error",
         "noUselessRename": "error",
         "noUselessTernary": "error",
         "noUselessFragments": "error",
-        "useOptionalChain": "off"
+        "useOptionalChain": "off",
+        "useSimplifiedLogicExpression": "off"
       },
       "correctness": {
         "noUnusedVariables": "error",
-        "noUnusedImports": "off",
+        "noUnusedImports": "error",
         "useExhaustiveDependencies": "off",
-        "noUnusedFunctionParameters": "off"
+        "noUnusedFunctionParameters": "off",
+        "useHookAtTopLevel": "error"
       },
       "style": {
         "noNegationElse": "error",
@@ -45,21 +48,30 @@
         "useSingleVarDeclarator": "off",
         "useImportType": "off",
         "useNodejsImportProtocol": "off",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useCollapsedElseIf": "error",
+        "useConsistentArrayType": "off",
+        "useNamingConvention": "off"
       },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off",
         "noCommentText": "off",
         "noConfusingVoidType": "error",
-        "noRedundantUseStrict": "error"
+        "noRedundantUseStrict": "error",
+        "noConsole": "off",
+        "noDebugger": "error"
       },
       "performance": {
-        "noDelete": "off"
+        "noDelete": "off",
+        "noAccumulatingSpread": "error"
       },
       "a11y": {
         "recommended": false,
         "useButtonType": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
       }
     }
   },
@@ -74,7 +86,10 @@
       "bracketSpacing": true,
       "bracketSameLine": false,
       "quoteProperties": "asNeeded",
-      "attributePosition": "auto"
+      "attributePosition": "auto",
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "lineEnding": "lf"
     },
     "parser": {
       "unsafeParameterDecoratorsEnabled": true
@@ -91,8 +106,30 @@
       "exports"
     ]
   },
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": false
+    },
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "lineEnding": "lf",
+      "lineWidth": 100,
+      "trailingCommas": "none"
+    }
+  },
   "css": {
     "formatter": {
+      "enabled": false,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "lineEnding": "lf",
+      "lineWidth": 100,
+      "quoteStyle": "double"
+    },
+    "linter": {
       "enabled": false
     }
   },

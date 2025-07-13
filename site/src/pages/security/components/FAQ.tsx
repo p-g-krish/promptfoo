@@ -1,4 +1,3 @@
-import React from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import dedent from 'dedent';
 import styles from '../styles.module.css';
@@ -76,6 +75,7 @@ export default function FAQ(): JSX.Element {
               </summary>
               <div
                 className={styles.faqAnswer}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: Static FAQ content with markdown converted to HTML
                 dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(faq.answer) }}
               />
             </details>

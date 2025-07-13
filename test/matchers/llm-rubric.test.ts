@@ -300,14 +300,14 @@ describe('matchesLlmRubric', () => {
         id: 'openai:gpt-4o-mini',
         config: {
           apiKey: 'abc123',
-          temperature: 3.1415926,
+          temperature: Math.PI,
         },
       },
     };
 
     const mockCallApi = jest.spyOn(OpenAiChatCompletionProvider.prototype, 'callApi');
     mockCallApi.mockImplementation(function (this: OpenAiChatCompletionProvider) {
-      expect(this.config.temperature).toBe(3.1415926);
+      expect(this.config.temperature).toBe(Math.PI);
       expect(this.getApiKey()).toBe('abc123');
       return Promise.resolve({
         output: JSON.stringify({ pass: true, reason: 'Grading passed' }),
@@ -828,16 +828,16 @@ describe('tryParse and renderLlmRubricPrompt', () => {
   let tryParse: (content: string | null | undefined) => any;
 
   beforeAll(async () => {
-    const context: { capturedFn: null | Function } = { capturedFn: null };
+    const context: { capturedFn: null | ((...args: any[]) => any) } = { capturedFn: null };
 
     await renderLlmRubricPrompt('{"test":"value"}', {
-      __capture(fn: Function) {
+      __capture(fn: (...args: any[]) => any) {
         context.capturedFn = fn;
         return 'captured';
       },
     });
 
-    tryParse = function (content: string | null | undefined) {
+    tryParse = (content: string | null | undefined) => {
       try {
         if (content === null || content === undefined) {
           return content;

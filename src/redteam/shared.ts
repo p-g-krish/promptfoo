@@ -25,7 +25,7 @@ export async function doRedteamRun(options: RedteamRunOptions): Promise<Eval | u
   let configPath: string = options.config ?? 'promptfooconfig.yaml';
 
   // If output filepath is not provided, locate the out file in the same directory as the config file:
-  let redteamPath;
+  let redteamPath: string;
   if (options.output) {
     redteamPath = options.output;
   } else {
@@ -115,18 +115,14 @@ export async function doRedteamRun(options: RedteamRunOptions): Promise<Eval | u
   if (options.loadedFromCloud) {
     const url = await createShareableUrl(evalResult, false);
     logger.info(`View results: ${chalk.greenBright.bold(url)}`);
+  } else if (options.liveRedteamConfig) {
+    logger.info(
+      chalk.blue(
+        `To view the results, click the ${chalk.bold('View Report')} button or run ${chalk.bold(`${command} redteam report`)} on the command line.`,
+      ),
+    );
   } else {
-    if (options.liveRedteamConfig) {
-      logger.info(
-        chalk.blue(
-          `To view the results, click the ${chalk.bold('View Report')} button or run ${chalk.bold(`${command} redteam report`)} on the command line.`,
-        ),
-      );
-    } else {
-      logger.info(
-        chalk.blue(`To view the results, run ${chalk.bold(`${command} redteam report`)}`),
-      );
-    }
+    logger.info(chalk.blue(`To view the results, run ${chalk.bold(`${command} redteam report`)}`));
   }
 
   // Clear the callback when done

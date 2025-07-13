@@ -11,8 +11,8 @@ export function handleIsJson({
   valueFromScript,
   assertion,
 }: AssertionParams): GradingResult {
-  let parsedJson;
-  let pass;
+  let parsedJson: any;
+  let pass: boolean;
   try {
     parsedJson = JSON.parse(outputString);
     pass = !inverse;

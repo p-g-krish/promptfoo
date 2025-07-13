@@ -31,7 +31,7 @@ export class WebhookProvider implements ApiProvider {
     }
 
     logger.debug(`Calling Webhook: ${this.webhookUrl} with params: ${JSON.stringify(params)}`);
-    let response;
+    let response: any;
     try {
       response = await fetchWithCache(
         this.webhookUrl,

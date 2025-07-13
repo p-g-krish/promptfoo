@@ -103,7 +103,7 @@ jest.mock('@aws-sdk/client-sagemaker-runtime', () => {
     }
 
     // Different response formats based on endpoint name
-    let responseBody;
+    let responseBody: any;
 
     if (command.EndpointName.includes('openai')) {
       responseBody = {
@@ -1333,7 +1333,7 @@ describe('SageMakerEmbeddingProvider - Extended Tests', () => {
     const provider = new SageMakerEmbeddingProvider('transform-embedding-endpoint', {
       id: 'sagemaker:custom:transform-embedding-endpoint',
       config: {
-        transform: 'text => `Embedding: ${text}`',
+        transform: 'text => "Embedding: " + text',
       },
     });
 

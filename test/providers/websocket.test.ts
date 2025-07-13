@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { WebSocketProvider, createTransformResponse } from '../../src/providers/websocket';
+import { createTransformResponse, WebSocketProvider } from '../../src/providers/websocket';
 
 jest.mock('ws');
 
@@ -11,7 +11,7 @@ describe('createTransformResponse', () => {
   });
 
   it('should create function from string parser', () => {
-    const parser = '({ output: `parsed-${data}` })';
+    const parser = '({ output: "parsed-" + data })';
     const transform = createTransformResponse(parser);
     expect(transform('test')).toEqual({ output: 'parsed-test' });
   });

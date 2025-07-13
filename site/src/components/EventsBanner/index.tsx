@@ -1,19 +1,11 @@
-import React, { useState, useEffect } from 'react';
 import Link from '@docusaurus/Link';
 import { useLocation } from '@docusaurus/router';
+import { useEffect, useState } from 'react';
 import styles from './styles.module.css';
 
 export default function EventsBanner(): JSX.Element | null {
   const [isVisible, setIsVisible] = useState(true);
   const location = useLocation();
-
-  // Don't show banner on event pages themselves
-  if (
-    location.pathname.includes('/events/blackhat-2025') ||
-    location.pathname.includes('/events/defcon-2025')
-  ) {
-    return null;
-  }
 
   // Check if user has dismissed the banner in this session
   useEffect(() => {
@@ -23,12 +15,22 @@ export default function EventsBanner(): JSX.Element | null {
     }
   }, []);
 
+  // Don't show banner on event pages themselves
+  if (
+    location.pathname.includes('/events/blackhat-2025') ||
+    location.pathname.includes('/events/defcon-2025')
+  ) {
+    return null;
+  }
+
   const handleDismiss = () => {
     setIsVisible(false);
     sessionStorage.setItem('eventsBannerDismissed', 'true');
   };
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <div className={styles.banner}>

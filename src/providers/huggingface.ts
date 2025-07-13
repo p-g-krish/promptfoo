@@ -99,7 +99,7 @@ export class HuggingfaceTextGenerationProvider implements ApiProvider {
       : `https://api-inference.huggingface.co/models/${this.modelName}`;
     logger.debug(`Huggingface API request: ${url} ${JSON.stringify(params)}`);
 
-    let response;
+    let response: any;
     try {
       response = await fetchWithCache(
         url,
@@ -173,7 +173,7 @@ export class HuggingfaceTextClassificationProvider implements ApiProvider {
       parameters: {},
     };
 
-    let response;
+    let response: any;
     try {
       const url = this.config.apiEndpoint
         ? this.config.apiEndpoint
@@ -271,7 +271,7 @@ export class HuggingfaceFeatureExtractionProvider implements ApiProvider {
       },
     };
 
-    let response;
+    let response: any;
     try {
       const url = this.config.apiEndpoint
         ? this.config.apiEndpoint
@@ -360,7 +360,7 @@ export class HuggingfaceSentenceSimilarityProvider implements ApiSimilarityProvi
       },
     };
 
-    let response;
+    let response: any;
     try {
       const url = this.config.apiEndpoint
         ? this.config.apiEndpoint
@@ -440,7 +440,7 @@ export class HuggingfaceTokenExtractionProvider implements ApiProvider {
       },
     };
 
-    let response;
+    let response: any;
     try {
       const url = this.config.apiEndpoint
         ? this.config.apiEndpoint

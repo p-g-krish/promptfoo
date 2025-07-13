@@ -15,7 +15,7 @@ export async function getPrompt(
   version?: number,
   label?: string,
 ): Promise<string> {
-  let prompt;
+  let prompt: any;
 
   if (!langfuse) {
     const { Langfuse } = await import('langfuse');

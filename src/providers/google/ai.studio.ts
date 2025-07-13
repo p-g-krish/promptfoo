@@ -3,9 +3,9 @@ import { getEnvString } from '../../envars';
 import logger from '../../logger';
 import type {
   ApiProvider,
-  ProviderResponse,
   CallApiContextParams,
   GuardrailResponse,
+  ProviderResponse,
 } from '../../types';
 import type { EnvOverrides } from '../../types/env';
 import { renderVarsInObject } from '../../util';
@@ -16,13 +16,13 @@ import { transformMCPToolsToGoogle } from '../mcp/transform';
 import { parseChatPrompt, REQUEST_TIMEOUT_MS } from '../shared';
 import { CHAT_MODELS } from './shared';
 import type { CompletionOptions } from './types';
+import type { GeminiResponseData } from './util';
 import {
-  loadFile,
   formatCandidateContents,
   geminiFormatAndSystemInstructions,
   getCandidate,
+  loadFile,
 } from './util';
-import type { GeminiResponseData } from './util';
 
 const DEFAULT_API_HOST = 'generativelanguage.googleapis.com';
 
@@ -160,8 +160,8 @@ export class AIStudioChatProvider extends AIStudioGenericProvider {
 
     logger.debug(`Calling Google API: ${JSON.stringify(body)}`);
 
-    let data,
-      cached = false;
+    let data: any;
+    let cached = false;
     try {
       ({ data, cached } = (await fetchWithCache(
         `${this.getApiUrl()}/v1beta3/models/${
@@ -277,7 +277,7 @@ export class AIStudioChatProvider extends AIStudioGenericProvider {
 
     logger.debug(`Calling Google API: ${JSON.stringify(body)}`);
 
-    let data;
+    let data: any;
     let cached = false;
     try {
       ({ data, cached } = (await fetchWithCache(
@@ -306,7 +306,8 @@ export class AIStudioChatProvider extends AIStudioGenericProvider {
     }
 
     logger.debug(`\tGoogle API response: ${JSON.stringify(data)}`);
-    let output, candidate;
+    let output: string;
+    let candidate: any;
     try {
       candidate = getCandidate(data);
       output = formatCandidateContents(candidate);

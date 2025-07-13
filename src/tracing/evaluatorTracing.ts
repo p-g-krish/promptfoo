@@ -69,16 +69,14 @@ export async function startOtlpReceiverIfNeeded(testSuite: TestSuite): Promise<v
     } catch (error) {
       logger.error(`[EvaluatorTracing] Failed to start OTLP receiver: ${error}`);
     }
+  } else if (otlpReceiverStarted) {
+    logger.debug('[EvaluatorTracing] OTLP receiver already started, skipping initialization');
   } else {
-    if (otlpReceiverStarted) {
-      logger.debug('[EvaluatorTracing] OTLP receiver already started, skipping initialization');
-    } else {
-      logger.debug('[EvaluatorTracing] Tracing not enabled or OTLP HTTP receiver not configured');
-      logger.debug(`[EvaluatorTracing] tracing.enabled: ${testSuite.tracing?.enabled}`);
-      logger.debug(
-        `[EvaluatorTracing] tracing.otlp.http.enabled: ${testSuite.tracing?.otlp?.http?.enabled}`,
-      );
-    }
+    logger.debug('[EvaluatorTracing] Tracing not enabled or OTLP HTTP receiver not configured');
+    logger.debug(`[EvaluatorTracing] tracing.enabled: ${testSuite.tracing?.enabled}`);
+    logger.debug(
+      `[EvaluatorTracing] tracing.otlp.http.enabled: ${testSuite.tracing?.otlp?.http?.enabled}`,
+    );
   }
 }
 

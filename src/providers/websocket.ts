@@ -16,12 +16,12 @@ interface WebSocketProviderConfig {
   messageTemplate: string;
   url?: string;
   timeoutMs?: number;
-  transformResponse?: string | Function;
+  transformResponse?: string | ((data: any) => ProviderResponse);
   headers?: Record<string, string>;
   /**
    * @deprecated
    */
-  responseParser?: string | Function;
+  responseParser?: string | ((data: any) => ProviderResponse);
 }
 
 export function createTransformResponse(parser: any): (data: any) => ProviderResponse {

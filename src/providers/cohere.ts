@@ -2,11 +2,11 @@ import { fetchWithCache } from '../cache';
 import { getEnvString } from '../envars';
 import logger from '../logger';
 import type {
+  ApiEmbeddingProvider,
   ApiProvider,
+  ProviderEmbeddingResponse,
   ProviderResponse,
   TokenUsage,
-  ApiEmbeddingProvider,
-  ProviderEmbeddingResponse,
 } from '../types';
 import type { EnvOverrides } from '../types/env';
 import { REQUEST_TIMEOUT_MS } from './shared';
@@ -99,7 +99,7 @@ export class CohereChatCompletionProvider implements ApiProvider {
 
     const params = { ...defaultParams, ...this.config };
 
-    let body;
+    let body: any;
     try {
       const promptObj = JSON.parse(prompt);
       if (typeof promptObj === 'object' && promptObj !== null) {
@@ -121,8 +121,8 @@ export class CohereChatCompletionProvider implements ApiProvider {
 
     logger.debug(`Calling Cohere API: ${JSON.stringify(body)}`);
 
-    let data,
-      cached = false;
+    let data: any;
+    let cached = false;
     try {
       ({ data, cached } = (await fetchWithCache(
         'https://api.cohere.ai/v1/chat',
@@ -225,7 +225,7 @@ export class CohereEmbeddingProvider implements ApiEmbeddingProvider {
       truncate: this.config.truncate || 'NONE',
     };
 
-    let data;
+    let data: any;
     try {
       ({ data } = (await fetchWithCache(
         `${this.getApiUrl()}/embed`,

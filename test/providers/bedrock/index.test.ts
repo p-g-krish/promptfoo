@@ -2,14 +2,15 @@ import dedent from 'dedent';
 import type {
   BedrockAI21GenerationOptions,
   BedrockClaudeMessagesCompletionOptions,
+  IBedrockModel,
   LlamaMessage,
   TextGenerationOptions,
 } from '../../../src/providers/bedrock';
 import {
-  addConfigParam,
+  AWS_BEDROCK_MODELS,
   AwsBedrockCompletionProvider,
   AwsBedrockGenericProvider,
-  AWS_BEDROCK_MODELS,
+  addConfigParam,
   BEDROCK_MODEL,
   coerceStrToNum,
   formatPromptLlama2Chat,
@@ -19,7 +20,6 @@ import {
   LlamaVersion,
   parseValue,
 } from '../../../src/providers/bedrock';
-import type { IBedrockModel } from '../../../src/providers/bedrock';
 
 jest.mock('@aws-sdk/client-bedrock-runtime', () => ({
   BedrockRuntime: jest.fn().mockImplementation(() => ({
@@ -1729,8 +1729,8 @@ describe('AWS_BEDROCK_MODELS mapping', () => {
 describe('AwsBedrockCompletionProvider', () => {
   const { BedrockRuntime } = jest.requireMock('@aws-sdk/client-bedrock-runtime');
   const mockInvokeModel = jest.fn();
-  let originalModelHandler: IBedrockModel;
-  let mockCache;
+  let originalModelHandler: IBedrockModel | undefined;
+  let mockCache: any;
 
   beforeEach(() => {
     jest.clearAllMocks();

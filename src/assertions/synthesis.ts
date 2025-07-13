@@ -3,7 +3,7 @@ import dedent from 'dedent';
 import logger from '../logger';
 import { loadApiProvider } from '../providers';
 import { getDefaultProviders } from '../providers/defaults';
-import type { TestCase, TestSuite, ApiProvider, Assertion } from '../types';
+import type { ApiProvider, Assertion, TestCase, TestSuite } from '../types';
 import { sampleArray } from '../util/generation';
 import invariant from '../util/invariant';
 import { extractJsonObjects } from '../util/json';
@@ -495,7 +495,7 @@ export async function synthesize({
         progressBar.increment();
       }
 
-      if (output.toLowerCase().trim() == 'none') {
+      if (output.toLowerCase().trim() === 'none') {
         return { type, metric: q.label, value: q.question };
       } else {
         return {

@@ -1,13 +1,13 @@
 import { fetchWithCache } from '../../../src/cache';
 import {
-  validateSizeForModel,
-  formatOutput,
-  prepareRequestBody,
   calculateImageCost,
   callOpenAiImageApi,
-  processApiResponse,
   DALLE2_COSTS,
   DALLE3_COSTS,
+  formatOutput,
+  prepareRequestBody,
+  processApiResponse,
+  validateSizeForModel,
 } from '../../../src/providers/openai/image';
 
 jest.mock('../../../src/cache', () => ({
@@ -163,20 +163,20 @@ describe('OpenAI Image Provider Functions', () => {
 
     it('should calculate correct cost for standard DALL-E 3', () => {
       expect(calculateImageCost('dall-e-3', '1024x1024', 'standard')).toBe(
-        DALLE3_COSTS['standard_1024x1024'],
+        DALLE3_COSTS.standard_1024x1024,
       );
       expect(calculateImageCost('dall-e-3', '1024x1792', 'standard')).toBe(
-        DALLE3_COSTS['standard_1024x1792'],
+        DALLE3_COSTS.standard_1024x1792,
       );
     });
 
     it('should calculate correct cost for HD DALL-E 3', () => {
-      expect(calculateImageCost('dall-e-3', '1024x1024', 'hd')).toBe(DALLE3_COSTS['hd_1024x1024']);
-      expect(calculateImageCost('dall-e-3', '1024x1792', 'hd')).toBe(DALLE3_COSTS['hd_1024x1792']);
+      expect(calculateImageCost('dall-e-3', '1024x1024', 'hd')).toBe(DALLE3_COSTS.hd_1024x1024);
+      expect(calculateImageCost('dall-e-3', '1024x1792', 'hd')).toBe(DALLE3_COSTS.hd_1024x1792);
     });
 
     it('should use standard quality if quality is not specified for DALL-E 3', () => {
-      expect(calculateImageCost('dall-e-3', '1024x1024')).toBe(DALLE3_COSTS['standard_1024x1024']);
+      expect(calculateImageCost('dall-e-3', '1024x1024')).toBe(DALLE3_COSTS.standard_1024x1024);
     });
 
     it('should use default cost if model is unknown', () => {
@@ -188,7 +188,7 @@ describe('OpenAI Image Provider Functions', () => {
         DALLE2_COSTS['256x256'] * 3,
       );
       expect(calculateImageCost('dall-e-3', '1024x1024', 'standard', 2)).toBe(
-        DALLE3_COSTS['standard_1024x1024'] * 2,
+        DALLE3_COSTS.standard_1024x1024 * 2,
       );
     });
 
