@@ -369,3 +369,29 @@ export const spansRelations = relations(spansTable, ({ one }) => ({
     references: [tracesTable.traceId],
   }),
 }));
+
+// ------------ Search ------------
+
+export const searchIndexTable = sqliteTable(
+  'search_index',
+  {
+    id: text('id').primaryKey(),
+    entityId: text('entity_id').notNull(),
+    entityType: text('entity_type').notNull(), // 'eval', 'prompt', 'dataset'
+    title: text('title'),
+    content: text('content'),
+    metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>(),
+    createdAt: integer('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    entityIdIdx: index('search_index_entity_id_idx').on(table.entityId),
+    entityTypeIdx: index('search_index_entity_type_idx').on(table.entityType),
+    createdAtIdx: index('search_index_created_at_idx').on(table.createdAt),
+  }),
+);
+
+export const searchMetadataTable = sqliteTable('search_metadata', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+  updatedAt: integer('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});

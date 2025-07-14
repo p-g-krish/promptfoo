@@ -295,7 +295,25 @@ export default class Eval {
       }
     });
 
-    return new Eval(config, { id: evalId, author: opts?.author, createdAt, persisted: true });
+    const eval_ = new Eval(config, {
+      id: evalId,
+      author: opts?.author,
+      createdAt,
+      persisted: true,
+    });
+
+    // Index for search if feature is enabled
+    if (getEnvBool('PROMPTFOO_ENABLE_UNIVERSAL_SEARCH')) {
+      try {
+        const { SearchService } = await import('../search');
+        const searchService = new SearchService();
+        await searchService.indexEval(evalId);
+      } catch (error) {
+        logger.debug(`Failed to index eval for search: ${error}`);
+      }
+    }
+
+    return eval_;
   }
 
   constructor(
@@ -359,6 +377,17 @@ export default class Eval {
     }
     await db.update(evalsTable).set(updateObj).where(eq(evalsTable.id, this.id)).run();
     this.persisted = true;
+
+    // Index for search if feature is enabled
+    if (getEnvBool('PROMPTFOO_ENABLE_UNIVERSAL_SEARCH')) {
+      try {
+        const { SearchService } = await import('../search');
+        const searchService = new SearchService();
+        await searchService.indexEval(this.id);
+      } catch (error) {
+        logger.debug(`Failed to index eval for search: ${error}`);
+      }
+    }
   }
 
   setVars(vars: string[]) {

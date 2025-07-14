@@ -5,6 +5,7 @@ import { PostHogProvider } from '@app/components/PostHogProvider';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { PostHogPageViewTracker } from './PostHogPageViewTracker';
+import { SearchModal } from './SearchModal';
 
 const createAppTheme = (darkMode: boolean) =>
   createTheme({
@@ -239,6 +240,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 export default function PageShell() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     // Initialize from localStorage, fallback to system preference
@@ -252,6 +254,18 @@ export default function PageShell() {
       localStorage.setItem('darkMode', String(newMode));
       return newMode;
     });
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -278,6 +292,7 @@ export default function PageShell() {
           <Navigation darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
           <Outlet />
           <PostHogPageViewTracker />
+          <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
         </Layout>
       </PostHogProvider>
     </ThemeProvider>
