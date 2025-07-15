@@ -14,6 +14,7 @@ import { isJavascriptFile } from '../util/fileExtensions';
 import invariant from '../util/invariant';
 import { PromptSchema } from '../validators/prompts';
 import { processCsvPrompts } from './processors/csv';
+import { processGolangFile } from './processors/golang';
 import { processJsFile } from './processors/javascript';
 import { processJinjaFile } from './processors/jinja';
 import { processJsonFile } from './processors/json';
@@ -129,8 +130,9 @@ async function processPrompt(
     );
     const prompts: Prompt[] = [];
     for (const globbedFilePath of globbedPath) {
+      const rawPath = functionName ? `${globbedFilePath}:${functionName}` : globbedFilePath;
       const processedPrompts = await processPrompt(
-        { raw: globbedFilePath },
+        { raw: rawPath },
         basePath,
         maxRecursionDepth - 1,
       );
@@ -166,6 +168,9 @@ async function processPrompt(
   }
   if (extension === '.py') {
     return processPythonFile(filePath, prompt, functionName);
+  }
+  if (extension === '.go') {
+    return processGolangFile(filePath, prompt, functionName);
   }
   if (extension === '.txt') {
     return processTxtFile(filePath, prompt);

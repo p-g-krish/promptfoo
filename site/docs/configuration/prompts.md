@@ -125,6 +125,43 @@ prompts:
   - file://scenarios/**/*.json
 ```
 
+### Wildcard Patterns with Functions
+
+When using wildcards with function-based prompts, the behavior varies by language:
+
+#### Python
+Wildcard patterns work seamlessly with Python files and preserve function names:
+
+```yaml
+prompts:
+  # Load all Python files and call get_prompt function in each
+  - file://prompts/**/*.py:get_prompt
+```
+
+#### JavaScript/TypeScript
+For JavaScript, it's recommended to use wildcards WITHOUT function names:
+
+```yaml
+prompts:
+  # ✅ Recommended: Each file exports its main function
+  - file://prompts/**/*.js
+  
+  # ❌ Not recommended: Tries to load myFunction from ALL matched files
+  - file://prompts/**/*.js:myFunction
+```
+
+#### Go
+Go files require function names and support wildcards:
+
+```yaml
+prompts:
+  # Load all Go files and call specific functions
+  - file://prompts/api/*.go:GenerateAPI
+  - file://prompts/validation/*.go:ValidateSecurity
+```
+
+Note: Go prompts require Go to be installed and will compile files on-demand.
+
 ## Chat Format (JSON)
 
 For conversation-style interactions, use JSON format:
@@ -214,6 +251,39 @@ def create_prompt(context):
     else:
         return f"Explain {vars['topic']} for beginners"
 ```
+
+### Go Functions
+
+```yaml title="promptfooconfig.yaml"
+prompts:
+  - file://generate_prompt.go:CreatePrompt
+```
+
+```go title="generate_prompt.go"
+package main
+
+import "fmt"
+
+func CreatePrompt(context PromptContext) string {
+    topic := "general topic"
+    if t, ok := context.Vars["topic"].(string); ok {
+        topic = t
+    }
+    
+    audience := "general"
+    if a, ok := context.Vars["audience"].(string); ok {
+        audience = a
+    }
+    
+    return fmt.Sprintf("Explain %s for a %s audience", topic, audience)
+}
+```
+
+**Note**: Go prompts require:
+- Go 1.16+ installed and in PATH
+- Function names (no legacy mode)
+- Functions must accept `PromptContext` and return `string`
+- Files are compiled on-demand (adds latency)
 
 ### Function with Configuration
 

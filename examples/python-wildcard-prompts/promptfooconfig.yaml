@@ -1,0 +1,50 @@
+description: "Python Wildcard Prompts Example"
+
+prompts:
+  # Load all Python files in the data/prompts directory and subdirectories
+  - file://data/prompts/**/*.py:get_prompt
+
+providers:
+  - id: echo
+    config:
+      type: echo
+
+tests:
+  # Marketing prompts
+  - description: "Marketing email test"
+    vars:
+      product: "AI Writing Assistant"
+      tone: "enthusiastic"
+      audience: "content creators and marketers"
+  
+  - description: "Social media test"
+    vars:
+      platform: "LinkedIn"
+      brand_voice: "professional yet engaging"
+      content: "announcement about our new API feature"
+  
+  # Technical prompts
+  - description: "Code review test"
+    vars:
+      language: "JavaScript"
+      focus_areas: "performance optimization and error handling"
+      code: |
+        function processData(items) {
+          for (var i = 0; i < items.length; i++) {
+            console.log(items[i]);
+          }
+        }
+  
+  - description: "API design test"
+    vars:
+      api_type: "GraphQL"
+      requirements: "real-time subscriptions and efficient data fetching"
+      description: "a task management system with projects, tasks, and team collaboration"
+  
+  # Creative prompts
+  - description: "Story writing test"
+    vars:
+      genre: "mystery"
+      style: "noir-inspired with short, punchy sentences"
+      theme: "deception in the digital age"
+      setting: "a cyberpunk city in 2089" 

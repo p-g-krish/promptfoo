@@ -1,0 +1,33 @@
+description: "Go Wildcard Prompts Example"
+
+prompts:
+  # Load all Go files with their specific functions
+  - file://prompts/api/*.go:GenerateAPI
+  - file://prompts/api/*.go:GenerateSchema
+  - file://prompts/validation/*.go:ValidateSecurity
+
+providers:
+  - echo
+
+tests:
+  # API generation tests
+  - description: "REST API generation"
+    vars:
+      resource: "products"
+      operations: "full CRUD with search and filtering"
+  
+  - description: "GraphQL schema generation"
+    vars:
+      domain: "social media platform"
+      features: "real-time subscriptions, complex queries, and batch mutations"
+  
+  # Security validation test
+  - description: "Security review"
+    vars:
+      code: |
+        func getUserData(userID string) (User, error) {
+          query := fmt.Sprintf("SELECT * FROM users WHERE id = '%s'", userID)
+          rows, err := db.Query(query)
+          // ... rest of the function
+        }
+      focus_areas: ["SQL injection", "authentication"] 

@@ -1,0 +1,26 @@
+description: "JavaScript Wildcard Prompts Example"
+
+prompts:
+  # Load all JavaScript files without specifying function names
+  # This is the recommended approach for JavaScript wildcards
+  - file://prompts/**/*.js
+
+providers:
+  - echo
+
+tests:
+  - description: "Customer support test"
+    vars:
+      issue: "refund request"
+      customerName: "Sarah Johnson"
+  
+  - description: "Feedback analysis test"
+    vars:
+      feedback: "The product quality is excellent but shipping took too long. Customer service was helpful."
+      sentimentFocus: "areas for improvement"
+  
+  - description: "Data analysis test"
+    vars:
+      dataType: "sales metrics"
+      analysisGoal: "identify seasonal trends"
+      data: "Q1: $1.2M, Q2: $1.5M, Q3: $2.1M, Q4: $3.2M" 
