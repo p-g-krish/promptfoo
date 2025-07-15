@@ -25,20 +25,20 @@ jest.mock('../../src/python/pythonUtils', () => ({
   })
 }));
 
-// Need to mock both regular fs and fs/promises
-jest.mock('fs');
-jest.mock('fs/promises');
-
-const mockFs = require('fs');
-mockFs.existsSync = jest.fn((path: string) => {
-  return true; // All paths exist
-});
-mockFs.readFileSync = jest.fn((path: string) => {
-  if (path.includes('.py')) {
-    return 'def get_prompt(context):\n    return "Test prompt"';
-  }
-  return '';
-});
+// Mock fs module
+jest.mock('fs', () => ({
+  existsSync: jest.fn(() => true),
+  readFileSync: jest.fn((path: string) => {
+    if (path.includes('.py')) {
+      return 'def get_prompt(context):\n    return "Test prompt"';
+    }
+    return '';
+  }),
+  statSync: jest.fn(() => ({
+    size: 1000, // Mock file size under limit
+    isDirectory: () => false
+  }))
+}));
 
 // Mock glob results
 jest.mock('glob', () => ({

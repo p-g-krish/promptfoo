@@ -1,31 +1,31 @@
-import * as fs from 'fs';
 import yaml from 'js-yaml';
 import logger from '../../logger';
 import type { Prompt } from '../../types';
+import { BaseFileProcessor } from './base';
 
 /**
- * Processes a YAML file to extract prompts.
- * This function reads a YAML file, parses it, and maps each entry to a `Prompt` object.
- * Each prompt is labeled with the file path and the YAML content.
- *
- * @param filePath - The path to the YAML file.
- * @param prompt - The raw prompt data, used for labeling.
- * @returns An array of `Prompt` objects extracted from the YAML file.
- * @throws Will throw an error if the file cannot be read or parsed.
+ * Processes YAML files with optional parsing attempt
  */
-export function processYamlFile(filePath: string, prompt: Partial<Prompt>): Prompt[] {
-  const fileContents = fs.readFileSync(filePath, 'utf8');
-  let maybeParsed: string | undefined = fileContents;
-  try {
-    maybeParsed = JSON.stringify(yaml.load(fileContents));
-  } catch (e) {
-    logger.debug(`Error parsing YAML file ${filePath}: ${e}`);
-  }
-  return [
-    {
-      raw: maybeParsed,
-      label: prompt.label || `${filePath}: ${maybeParsed?.slice(0, 80)}`,
+export class YamlFileProcessor extends BaseFileProcessor {
+  process(filePath: string, prompt: Partial<Prompt>): Prompt[] {
+    const content = this.readFileContent(filePath);
+    
+    // Try to parse YAML to validate it, but still return raw content
+    try {
+      yaml.load(content);
+    } catch (e) {
+      logger.debug(`YAML parsing warning for ${filePath}: ${e}`);
+    }
+    
+    return [{
+      raw: content,
+      label: this.generateLabel(filePath, undefined, prompt.label, content),
       config: prompt.config,
-    },
-  ];
+    }];
+  }
+}
+
+// Export function for backward compatibility
+export function processYamlFile(filePath: string, prompt: Partial<Prompt>): Prompt[] {
+  return new YamlFileProcessor().process(filePath, prompt);
 }

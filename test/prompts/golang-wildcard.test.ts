@@ -63,7 +63,11 @@ func ValidateSecurity(context PromptContext) string {
   }),
   mkdtempSync: jest.fn(() => '/tmp/test-go'),
   writeFileSync: jest.fn(),
-  rmSync: jest.fn()
+  rmSync: jest.fn(),
+  statSync: jest.fn(() => ({
+    size: 1000, // Mock file size under limit
+    isDirectory: () => false
+  }))
 }));
 
 // Mock glob results
@@ -129,11 +133,17 @@ describe('Go wildcard prompts', () => {
     expect(securityPrompts.length).toBe(1);
   });
 
-  it('should require function names for Go files', async () => {
-    // Unlike JavaScript, Go files require function names
-    await expect(processPrompts([
-      'file://test/**/*.go' // No function name
-    ], {})).rejects.toThrow();
+  it('should use GetPrompt as default function when no name specified', async () => {
+    // Go files now support optional function names, defaulting to GetPrompt
+    const prompts = await processPrompts([
+      'file://test/**/*.go' // No function name - uses GetPrompt
+    ], {});
+    
+    // Should create prompts for each file with GetPrompt
+    expect(prompts.length).toBe(3);
+    prompts.forEach(prompt => {
+      expect(prompt.label).toMatch(/\.go:GetPrompt$/);
+    });
   });
 
   it('should handle nested directory structures', async () => {

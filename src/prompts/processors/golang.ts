@@ -3,11 +3,11 @@ import * as path from 'path';
 import * as os from 'os';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
-import { createHash } from 'crypto';
 import logger from '../../logger';
 import type { Prompt, ApiProvider, PromptFunctionContext } from '../../types';
 import invariant from '../../util/invariant';
 import { safeJsonStringify } from '../../util/json';
+import { BaseFileProcessor } from './base';
 
 const execAsync = promisify(exec);
 
@@ -17,41 +17,44 @@ interface GoPromptResult {
 }
 
 /**
- * Go prompt function. Runs a specific function from the Go file.
- * @param filePath - Path to the Go file.
- * @param functionName - Function name to execute.
- * @param context - Context for the prompt.
- * @returns The prompt string
+ * Processes Go files with consistent function handling
+ * - Without function name: looks for GetPrompt function (default)
+ * - With function name: calls the specific function
  */
-export const goPromptFunction = async (
-  filePath: string,
-  functionName: string,
-  context: {
+export class GoFileProcessor extends BaseFileProcessor {
+  private transformContext(context: {
     vars: Record<string, string | object>;
     provider?: ApiProvider;
     config?: Record<string, any>;
-  },
-): Promise<string> => {
-  invariant(context.provider?.id, 'provider.id is required');
-  
-  const transformedContext: PromptFunctionContext = {
-    vars: context.vars,
-    provider: {
-      id: typeof context.provider?.id === 'function' ? context.provider?.id() : context.provider?.id,
-      label: context.provider?.label,
-    },
-    config: context.config ?? {},
-  };
+  }): PromptFunctionContext {
+    invariant(context.provider?.id, 'provider.id is required');
+    
+    return {
+      vars: context.vars,
+      provider: {
+        id: typeof context.provider?.id === 'function' ? context.provider?.id() : context.provider?.id,
+        label: context.provider?.label,
+      },
+      config: context.config ?? {},
+    };
+  }
 
-  // Create a temporary directory for compilation
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'promptfoo-go-'));
-  
-  try {
-    // Read the Go file
-    const goCode = fs.readFileSync(filePath, 'utf8');
+  private async compileAndRun(
+    filePath: string,
+    functionName: string,
+    context: any
+  ): Promise<string> {
+    const transformedContext = this.transformContext(context);
+    
+    // Create a temporary directory for compilation
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'promptfoo-go-'));
+    
+    try {
+      // Read the Go file
+      const goCode = this.readFileContent(filePath);
 
-    // Create a main.go file that calls the specified function
-    const mainGoContent = `package main
+      // Create a main.go file that calls the specified function
+      const mainGoContent = `package main
 
 import (
   "encoding/json"
@@ -93,100 +96,112 @@ func main() {
   json.NewEncoder(os.Stdout).Encode(result)
 }`;
 
-    const mainGoPath = path.join(tempDir, 'main.go');
-    fs.writeFileSync(mainGoPath, mainGoContent);
+      const mainGoPath = path.join(tempDir, 'main.go');
+      fs.writeFileSync(mainGoPath, mainGoContent);
 
-    // Compile the Go program
-    logger.debug(`Compiling Go prompt file: ${filePath}`);
-    const { stderr: compileError } = await execAsync(
-      `go build -o prompt_wrapper main.go`,
-      { cwd: tempDir }
-    );
+      // Compile the Go program
+      logger.debug(`Compiling Go prompt file: ${filePath}`);
+      const { stderr: compileError } = await execAsync(
+        `go build -o prompt_wrapper main.go`,
+        { cwd: tempDir }
+      );
 
-    if (compileError) {
-      logger.warn(`Go compilation warnings: ${compileError}`);
-    }
+      if (compileError) {
+        logger.warn(`Go compilation warnings: ${compileError}`);
+      }
 
-    // Execute the compiled program with context as input
-    const contextJson = safeJsonStringify(transformedContext);
-    
-    // Use spawn to execute with stdin
-    const result = await new Promise<GoPromptResult>((resolve, reject) => {
-      const child = spawn('./prompt_wrapper', [], { cwd: tempDir });
-      let stdout = '';
-      let stderr = '';
+      // Execute the compiled program with context as input
+      const contextJson = safeJsonStringify(transformedContext);
+      
+      // Use spawn to execute with stdin
+      const result = await new Promise<GoPromptResult>((resolve, reject) => {
+        const child = spawn('./prompt_wrapper', [], { cwd: tempDir });
+        let stdout = '';
+        let stderr = '';
 
-      child.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
+        child.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
 
-      child.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
+        child.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
 
-      child.on('error', reject);
+        child.on('error', reject);
 
-      child.on('close', (code) => {
-        if (code !== 0) {
-          reject(new Error(`Go process exited with code ${code}: ${stderr}`));
-        } else {
-          if (stderr) {
-            logger.warn(`Go execution warnings: ${stderr}`);
+        child.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(`Go process exited with code ${code}: ${stderr}`));
+          } else {
+            if (stderr) {
+              logger.warn(`Go execution warnings: ${stderr}`);
+            }
+            try {
+              const parsedResult: GoPromptResult = JSON.parse(stdout);
+              resolve(parsedResult);
+            } catch (e) {
+              reject(new Error(`Failed to parse Go output: ${stdout}`));
+            }
           }
-          try {
-            const parsedResult: GoPromptResult = JSON.parse(stdout);
-            resolve(parsedResult);
-          } catch (e) {
-            reject(new Error(`Failed to parse Go output: ${stdout}`));
-          }
-        }
+        });
+
+        // Write context to stdin
+        child.stdin.write(contextJson);
+        child.stdin.end();
       });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
-      // Write context to stdin
-      child.stdin.write(contextJson);
-      child.stdin.end();
-    });
-    
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result.prompt;
-  } finally {
-    // Clean up temp directory
-    try {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch (e) {
-      logger.warn(`Failed to clean up temp directory ${tempDir}: ${e}`);
+      return result.prompt;
+    } finally {
+      // Clean up temp directory
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch (e) {
+        logger.warn(`Failed to clean up temp directory ${tempDir}: ${e}`);
+      }
     }
   }
+
+  process(
+    filePath: string,
+    prompt: Partial<Prompt>,
+    functionName?: string
+  ): Prompt[] {
+    this.validatePath(filePath);
+    this.validateFunctionName(functionName);
+    
+    // Default to 'GetPrompt' function if no function name specified
+    const targetFunction = functionName || 'GetPrompt';
+    
+    const fileContent = this.readFileContent(filePath);
+    const label = this.generateLabel(filePath, targetFunction, prompt.label);
+    
+    return [{
+      raw: fileContent,
+      label,
+      function: (context) => this.compileAndRun(filePath, targetFunction, { ...context, config: prompt.config }),
+      config: prompt.config,
+    }];
+  }
+}
+
+// Export legacy function for backward compatibility
+export const goPromptFunction = async (
+  filePath: string,
+  functionName: string,
+  context: any
+): Promise<string> => {
+  const processor = new GoFileProcessor();
+  return processor['compileAndRun'](filePath, functionName, context);
 };
 
-/**
- * Processes a Go file to execute a function as a prompt.
- * @param filePath - Path to the Go file.
- * @param prompt - The raw prompt data.
- * @param functionName - Function name to execute (required for Go files).
- * @returns Array of prompts extracted or executed from the file.
- */
 export function processGolangFile(
   filePath: string,
   prompt: Partial<Prompt>,
-  functionName: string | undefined,
+  functionName?: string
 ): Prompt[] {
-  if (!functionName) {
-    throw new Error(`Go prompt files require a function name. Please specify the function to call, e.g., file://${filePath}:FunctionName`);
-  }
-  
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  const label = prompt.label ?? `${filePath}:${functionName}`;
-  
-  return [
-    {
-      raw: fileContent,
-      label,
-      function: (context) => goPromptFunction(filePath, functionName, { ...context, config: prompt.config }),
-      config: prompt.config,
-    },
-  ];
+  return new GoFileProcessor().process(filePath, prompt, functionName);
 }

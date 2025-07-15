@@ -54,7 +54,11 @@ func TestPrompt(context PromptContext) string {
     return '';
   }),
   writeFileSync: jest.fn(),
-  rmSync: jest.fn()
+  rmSync: jest.fn(),
+  statSync: jest.fn(() => ({
+    size: 1000, // Mock file size under limit
+    isDirectory: () => false
+  }))
 }));
 
 describe('processGolangFile', () => {
@@ -62,30 +66,32 @@ describe('processGolangFile', () => {
     jest.clearAllMocks();
   });
 
-  it('should require a function name', () => {
-    expect(() => {
-      processGolangFile('/path/to/file.go', {}, undefined);
-    }).toThrow('Go prompt files require a function name');
+  it('should use GetPrompt as default when no function name provided', () => {
+    const result = processGolangFile('test/file.go', {}, undefined);
+    
+    expect(result).toHaveLength(1);
+    expect(result[0].label).toBe('test/file.go:GetPrompt');
+    expect(typeof result[0].function).toBe('function');
   });
 
   it('should process a Go file with a function name', () => {
-    const result = processGolangFile('/path/to/file.go', {}, 'TestPrompt');
+    const result = processGolangFile('test/file.go', {}, 'TestPrompt');
     
     expect(result).toHaveLength(1);
-    expect(result[0].label).toBe('/path/to/file.go:TestPrompt');
+    expect(result[0].label).toBe('test/file.go:TestPrompt');
     expect(result[0].raw).toContain('func TestPrompt');
     expect(typeof result[0].function).toBe('function');
   });
 
   it('should include config in the prompt', () => {
     const config = { temperature: 0.7 };
-    const result = processGolangFile('/path/to/file.go', { config }, 'TestPrompt');
+    const result = processGolangFile('test/file.go', { config }, 'TestPrompt');
     
     expect(result[0].config).toEqual(config);
   });
 
   it('should use custom label if provided', () => {
-    const result = processGolangFile('/path/to/file.go', { label: 'Custom Label' }, 'TestPrompt');
+    const result = processGolangFile('test/file.go', { label: 'Custom Label' }, 'TestPrompt');
     
     expect(result[0].label).toBe('Custom Label');
   });
@@ -102,7 +108,7 @@ describe('goPromptFunction', () => {
       provider: { id: 'test-provider' }
     };
 
-    const result = await goPromptFunction('/path/to/file.go', 'TestPrompt', context);
+    const result = await goPromptFunction('test/file.go', 'TestPrompt', context);
     
     expect(result).toBe('Test prompt output');
     expect(fs.mkdtempSync).toHaveBeenCalled();
@@ -115,7 +121,7 @@ describe('goPromptFunction', () => {
       provider: { id: 'test-provider' }
     };
 
-    await goPromptFunction('/path/to/file.go', 'TestPrompt', context);
+    await goPromptFunction('test/file.go', 'TestPrompt', context);
     
     expect(fs.rmSync).toHaveBeenCalledWith('/tmp/test-go-dir', { recursive: true, force: true });
   });
@@ -135,7 +141,7 @@ describe('goPromptFunction', () => {
       provider: { id: 'test-provider' }
     };
 
-    await expect(goPromptFunction('/path/to/file.go', 'TestPrompt', context))
+    await expect(goPromptFunction('test/file.go', 'TestPrompt', context))
       .rejects.toThrow('Compilation failed');
   });
 
@@ -164,7 +170,7 @@ describe('goPromptFunction', () => {
       provider: { id: 'test-provider' }
     };
 
-    await expect(goPromptFunction('/path/to/file.go', 'TestPrompt', context))
+    await expect(goPromptFunction('test/file.go', 'TestPrompt', context))
       .rejects.toThrow('Go process exited with code 1');
   });
 }); 

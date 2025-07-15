@@ -151,11 +151,14 @@ prompts:
 ```
 
 #### Go
-Go files require function names and support wildcards:
+Go files support wildcards with optional function names (defaults to `GetPrompt`):
 
 ```yaml
 prompts:
-  # Load all Go files and call specific functions
+  # Uses default GetPrompt function
+  - file://prompts/**/*.go
+  
+  # Call specific functions
   - file://prompts/api/*.go:GenerateAPI
   - file://prompts/validation/*.go:ValidateSecurity
 ```
@@ -237,10 +240,23 @@ module.exports = async function ({ vars, provider }) {
 
 ```yaml title="promptfooconfig.yaml"
 prompts:
+  # Without function name - runs the entire file
+  - file://generate_prompt.py
+  
+  # With function name - calls specific function
   - file://generate_prompt.py:create_prompt
 ```
 
 ```python title="generate_prompt.py"
+# When run without function name, print the output
+import sys
+import json
+
+if __name__ == "__main__":
+    context = json.loads(sys.argv[1])
+    print(f"Explain {context['vars']['topic']} simply")
+
+# When run with function name
 def create_prompt(context):
     vars = context['vars']
     provider = context['provider']
@@ -264,6 +280,17 @@ package main
 
 import "fmt"
 
+// Default function when no name specified
+func GetPrompt(context PromptContext) string {
+    topic := "general topic"
+    if t, ok := context.Vars["topic"].(string); ok {
+        topic = t
+    }
+    
+    return fmt.Sprintf("Explain %s in simple terms", topic)
+}
+
+// Named function for specific use
 func CreatePrompt(context PromptContext) string {
     topic := "general topic"
     if t, ok := context.Vars["topic"].(string); ok {
@@ -281,7 +308,7 @@ func CreatePrompt(context PromptContext) string {
 
 **Note**: Go prompts require:
 - Go 1.16+ installed and in PATH
-- Function names (no legacy mode)
+- Default function is `GetPrompt` if no name specified
 - Functions must accept `PromptContext` and return `string`
 - Files are compiled on-demand (adds latency)
 

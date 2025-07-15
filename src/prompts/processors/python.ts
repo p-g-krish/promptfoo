@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import type { Options as PythonShellOptions } from 'python-shell';
 import { PythonShell } from 'python-shell';
 import { getEnvString } from '../../envars';
@@ -7,96 +6,100 @@ import { runPython } from '../../python/pythonUtils';
 import type { Prompt, ApiProvider, PromptFunctionContext } from '../../types';
 import invariant from '../../util/invariant';
 import { safeJsonStringify } from '../../util/json';
+import { BaseFileProcessor } from './base';
 
 /**
- * Python prompt function. Runs a specific function from the python file.
- * @param promptPath - Path to the Python file.
- * @param functionName - Function name to execute.
- * @param context - Context for the prompt.
- * @returns The prompts
+ * Processes Python files with consistent function handling
+ * - Without function name: runs the entire file (expects it to print output)
+ * - With function name: calls the specific function
  */
-export const pythonPromptFunction = async (
-  filePath: string,
-  functionName: string,
-  context: {
+export class PythonFileProcessor extends BaseFileProcessor {
+  private transformContext(context: {
     vars: Record<string, string | object>;
     provider?: ApiProvider;
     config?: Record<string, any>;
-  },
-) => {
-  invariant(context.provider?.id, 'provider.id is required');
-  const transformedContext: PromptFunctionContext = {
-    vars: context.vars,
-    provider: {
-      id:
-        typeof context.provider?.id === 'function' ? context.provider?.id() : context.provider?.id,
-      label: context.provider?.label,
-    },
-    config: context.config ?? {},
-  };
+  }): PromptFunctionContext {
+    invariant(context.provider?.id, 'provider.id is required');
+    return {
+      vars: context.vars,
+      provider: {
+        id: typeof context.provider?.id === 'function' ? context.provider?.id() : context.provider?.id,
+        label: context.provider?.label,
+      },
+      config: context.config ?? {},
+    };
+  }
 
-  return runPython(filePath, functionName, [transformedContext]);
-};
+  private async runPythonFile(
+    filePath: string,
+    context: any
+  ): Promise<string> {
+    const transformedContext = this.transformContext(context);
+    const options: PythonShellOptions = {
+      mode: 'text',
+      pythonPath: getEnvString('PROMPTFOO_PYTHON', 'python'),
+      args: [safeJsonStringify(transformedContext) as string],
+    };
+    
+    logger.debug(`Executing python prompt script ${filePath}`);
+    const results = (await PythonShell.run(filePath, options)).join('\n');
+    logger.debug(`Python prompt script ${filePath} returned: ${results}`);
+    return results;
+  }
 
-/**
- * Legacy Python prompt function. Runs the whole python file.
- * @param filePath - Path to the Python file.
- * @param context - Context for the prompt.
- * @returns The prompts
- */
-export const pythonPromptFunctionLegacy = async (
-  filePath: string,
-  context: {
-    vars: Record<string, string | object>;
-    provider?: ApiProvider;
-    config?: Record<string, any>;
-  },
-): Promise<string> => {
-  invariant(context?.provider?.id, 'provider.id is required');
-  const transformedContext: PromptFunctionContext = {
-    vars: context.vars,
-    provider: {
-      id:
-        typeof context.provider?.id === 'function' ? context.provider?.id() : context.provider?.id,
-      label: context.provider?.label,
-    },
-    config: context.config ?? {},
-  };
-  const options: PythonShellOptions = {
-    mode: 'text',
-    pythonPath: getEnvString('PROMPTFOO_PYTHON', 'python'),
-    args: [safeJsonStringify(transformedContext) as string],
-  };
-  logger.debug(`Executing python prompt script ${filePath}`);
-  const results = (await PythonShell.run(filePath, options)).join('\n');
-  logger.debug(`Python prompt script ${filePath} returned: ${results}`);
-  return results;
-};
+  private async runPythonFunction(
+    filePath: string,
+    functionName: string,
+    context: any
+  ): Promise<string> {
+    const transformedContext = this.transformContext(context);
+    return runPython(filePath, functionName, [transformedContext]);
+  }
 
-/**
- * Processes a Python file to extract or execute a function as a prompt.
- * @param filePath - Path to the Python file.
- * @param prompt - The raw prompt data.
- * @param functionName - Optional function name to execute.
- * @returns Array of prompts extracted or executed from the file.
- */
-export function processPythonFile(
-  filePath: string,
-  prompt: Partial<Prompt>,
-  functionName: string | undefined,
-): Prompt[] {
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  const label =
-    prompt.label ?? (functionName ? `${filePath}:${functionName}` : `${filePath}: ${fileContent}`);
-  return [
-    {
+  process(
+    filePath: string,
+    prompt: Partial<Prompt>,
+    functionName?: string
+  ): Prompt[] {
+    this.validatePath(filePath);
+    this.validateFunctionName(functionName);
+    
+    const fileContent = this.readFileContent(filePath);
+    const label = this.generateLabel(filePath, functionName, prompt.label);
+    
+    return [{
       raw: fileContent,
       label,
       function: functionName
-        ? (context) =>
-            pythonPromptFunction(filePath, functionName, { ...context, config: prompt.config })
-        : (context) => pythonPromptFunctionLegacy(filePath, { ...context, config: prompt.config }),
+        ? (context) => this.runPythonFunction(filePath, functionName, { ...context, config: prompt.config })
+        : (context) => this.runPythonFile(filePath, { ...context, config: prompt.config }),
       config: prompt.config,
-    },
-  ];
+    }];
+  }
+}
+
+// Export legacy functions for backward compatibility
+export const pythonPromptFunction = async (
+  filePath: string,
+  functionName: string,
+  context: any
+) => {
+  const processor = new PythonFileProcessor();
+  return processor['runPythonFunction'](filePath, functionName, context);
+};
+
+export const pythonPromptFunctionLegacy = async (
+  filePath: string,
+  context: any
+): Promise<string> => {
+  const processor = new PythonFileProcessor();
+  return processor['runPythonFile'](filePath, context);
+};
+
+export function processPythonFile(
+  filePath: string,
+  prompt: Partial<Prompt>,
+  functionName?: string
+): Prompt[] {
+  return new PythonFileProcessor().process(filePath, prompt, functionName);
 }

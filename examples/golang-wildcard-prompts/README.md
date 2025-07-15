@@ -9,8 +9,8 @@ This example demonstrates how to use wildcard patterns with Go prompt files.
 
 ## Important Notes
 
-- **Function names required**: Go files MUST specify function names (e.g., `file://prompt.go:MyFunction`)
-- **No legacy mode**: Unlike Python, Go doesn't support running files without function names
+- **Function names optional**: If not specified, defaults to `GetPrompt` function
+- **Consistent with other languages**: Go now behaves like Python and JavaScript
 - **Compilation overhead**: Go files are compiled on-demand, which adds some latency
 
 ## Directory Structure
@@ -53,6 +53,17 @@ package main
 
 import "fmt"
 
+// Default function called when no function name is specified
+func GetPrompt(context PromptContext) string {
+    topic := "general topic"
+    if t, ok := context.Vars["topic"].(string); ok {
+        topic = t
+    }
+    
+    return fmt.Sprintf("Explain %s in simple terms", topic)
+}
+
+// Specific function that can be called by name
 func GenerateAPI(context PromptContext) string {
     resource := "users"
     if r, ok := context.Vars["resource"].(string); ok {
@@ -61,6 +72,24 @@ func GenerateAPI(context PromptContext) string {
     
     return fmt.Sprintf("Design a REST API for managing %s...", resource)
 }
+```
+
+## Configuration Examples
+
+```yaml
+# Using default GetPrompt function
+prompts:
+  - file://prompts/api/rest.go
+
+# Using specific named functions
+prompts:
+  - file://prompts/api/rest.go:GenerateAPI
+  - file://prompts/api/graphql.go:GenerateSchema
+
+# Wildcard patterns
+prompts:
+  - file://prompts/**/*.go           # Uses GetPrompt from all files
+  - file://prompts/**/*.go:Generate*  # Pattern not supported - use exact names
 ```
 
 ## Running the Example

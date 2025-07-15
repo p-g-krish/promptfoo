@@ -1,8 +1,9 @@
+import type { Prompt, ApiProvider, PromptFunctionContext } from '../../types';
 import { importModule } from '../../esm';
-import type { ApiProvider, Prompt, PromptFunctionContext } from '../../types';
 import invariant from '../../util/invariant';
+import { BaseFileProcessor } from './base';
 
-export const transformContext = (context: {
+const transformContext = (context: {
   vars: Record<string, string | object>;
   provider?: ApiProvider;
   config?: Record<string, any>;
@@ -16,21 +17,24 @@ export const transformContext = (context: {
 };
 
 /**
- * Processes a JavaScript file to import and execute a module function as a prompt.
- * @param filePath - Path to the JavaScript file.
- * @param functionName - Optional function name to execute.
- * @returns Promise resolving to an array of prompts.
+ * Processes JavaScript/TypeScript files with consistent function handling
+ * - Without function name: imports default export or module.exports
+ * - With function name: imports specific named export
  */
-export async function processJsFile(
-  filePath: string,
-  prompt: Partial<Prompt>,
-  functionName: string | undefined,
-): Promise<Prompt[]> {
-  const promptFunction = await importModule(filePath, functionName);
-  return [
-    {
+export class JavaScriptFileProcessor extends BaseFileProcessor {
+  async process(
+    filePath: string,
+    prompt: Partial<Prompt>,
+    functionName?: string
+  ): Promise<Prompt[]> {
+    this.validatePath(filePath);
+    this.validateFunctionName(functionName);
+    
+    const promptFunction = await importModule(filePath, functionName);
+    
+    return [{
       raw: String(promptFunction),
-      label: prompt.label ? prompt.label : functionName ? `${filePath}:${functionName}` : filePath,
+      label: this.generateLabel(filePath, functionName, prompt.label),
       function: (context) =>
         promptFunction(
           transformContext({
@@ -39,6 +43,15 @@ export async function processJsFile(
           }),
         ),
       config: prompt.config ?? {},
-    },
-  ];
+    }];
+  }
+}
+
+// Export function for backward compatibility
+export async function processJsFile(
+  filePath: string,
+  prompt: Partial<Prompt>,
+  functionName?: string
+): Promise<Prompt[]> {
+  return new JavaScriptFileProcessor().process(filePath, prompt, functionName);
 }
