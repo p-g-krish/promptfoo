@@ -365,16 +365,12 @@ export default function Strategies({ onNext, onBack }: StrategiesProps) {
     ['goat', 'crescendo'].includes(getStrategyId(s)),
   );
 
-  const hasSessionParser = Boolean(
-    config.target.config?.sessionParser || config.target.config?.sessionSource === 'client',
-  );
-
   const selectedPresetHasAgenticStrategies =
-    selectedPreset && selectedPreset !== 'Custom' &&
+    selectedPreset &&
+    selectedPreset !== 'Custom' &&
     Object.values(STRATEGY_PRESETS[selectedPreset as PresetId]?.strategies ?? {}).some((s) =>
       AGENTIC_STRATEGIES.includes(s as any),
     );
-
 
   // ----------------------------------------------
   // Render
@@ -514,7 +510,6 @@ export default function Strategies({ onNext, onBack }: StrategiesProps) {
         <SystemConfiguration
           isStatefulValue={isStatefulValue}
           onStatefulChange={handleStatefulChange}
-          hasSessionParser={hasSessionParser}
         />
       )}
 
