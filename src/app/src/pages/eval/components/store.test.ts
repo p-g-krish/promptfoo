@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { type ResultsFilter, useTableStore } from './store';
 
-import type { EvaluateTable, PromptMetrics } from './types';
+import type { EvaluateTable, PromptMetrics, ResultsFile } from './types';
 
 vi.mock('uuid', () => ({
   v4: vi.fn(),
@@ -27,6 +27,22 @@ const baseMetrics: Omit<PromptMetrics, 'namedScores'> = {
   namedScoresCount: {},
 };
 
+// Helper function to compute available metrics (mimics the store's computeAvailableMetrics)
+function computeAvailableMetrics(table: EvaluateTable | null): string[] {
+  if (!table || !table.head?.prompts) {
+    return [];
+  }
+
+  const metrics = new Set<string>();
+  table.head.prompts.forEach((prompt) => {
+    if (prompt.metrics?.namedScores) {
+      Object.keys(prompt.metrics.namedScores).forEach((metric) => metrics.add(metric));
+    }
+  });
+
+  return Array.from(metrics).sort();
+}
+
 describe('useTableStore', () => {
   beforeEach(() => {
     act(() => {
@@ -40,8 +56,11 @@ describe('useTableStore', () => {
           options: {
             metric: [],
             metadata: [],
+            plugin: [],
+            strategy: [],
           },
         },
+        shouldHighlightSearchText: false,
       });
     });
     vi.clearAllMocks();
@@ -164,6 +183,37 @@ describe('useTableStore', () => {
       expect(state.filters.appliedCount).toBe(0);
       expect(state.filters.values[mockFilterId].value).toBe('');
     });
+
+    it("should update `filters.options.strategy` with unique strategy IDs (from both strings and objects) and always include 'basic' when `fetchEvalData` receives a config with mixed strategy types", async () => {
+      const mockEvalId = 'test-eval-id';
+      const mockStrategies = ['strategy1', { id: 'strategy2' }, 'strategy1', { id: 'strategy3' }];
+
+      (callApi as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          table: { head: { prompts: [] }, body: [] },
+          totalCount: 0,
+          filteredCount: 0,
+          config: {
+            redteam: {
+              strategies: mockStrategies,
+            },
+          },
+        }),
+      });
+
+      await act(async () => {
+        await useTableStore.getState().fetchEvalData(mockEvalId);
+      });
+
+      const state = useTableStore.getState();
+      expect(state.filters.options.strategy).toEqual([
+        'strategy1',
+        'strategy2',
+        'strategy3',
+        'basic',
+      ]);
+    });
   });
 
   describe('fetchEvalData', () => {
@@ -226,6 +276,253 @@ describe('useTableStore', () => {
       expect(state.isFetching).toBe(false);
       expect(result).toBe(null);
     });
+
+    it("should handle a null strategies array in the API response by setting filters.options.strategy to ['basic']", async () => {
+      const mockEvalId = 'test-eval-id';
+      (callApi as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          table: { head: { prompts: [] }, body: [] },
+          totalCount: 0,
+          filteredCount: 0,
+          config: {
+            redteam: {
+              strategies: null,
+            },
+          },
+        }),
+      } as any);
+
+      await act(async () => {
+        await useTableStore.getState().fetchEvalData(mockEvalId);
+      });
+
+      const state = useTableStore.getState();
+      expect(state.filters.options.strategy).toEqual(['basic']);
+    });
+
+    describe('shouldHighlightSearchText', () => {
+      it('should keep `shouldHighlightSearchText` as `false` after data is loaded if `searchText` is empty', async () => {
+        const mockEvalId = 'test-eval-id';
+        (callApi as Mock).mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            table: { head: { prompts: [] }, body: [] },
+            totalCount: 0,
+            filteredCount: 0,
+          }),
+        });
+
+        await act(async () => {
+          await useTableStore.getState().fetchEvalData(mockEvalId, { searchText: '' });
+        });
+
+        const state = useTableStore.getState();
+        expect(state.shouldHighlightSearchText).toBe(false);
+      });
+
+      it('should set `shouldHighlightSearchText` to `false` when `fetchEvalData` is called, and then to `true` after data is loaded if `searchText` is non-empty', async () => {
+        const mockEvalId = 'test-eval-id';
+        const mockSearchText = 'test search text';
+        (callApi as Mock).mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            table: { head: { prompts: [] }, body: [] },
+            totalCount: 0,
+            filteredCount: 0,
+            config: {},
+            version: 4,
+            author: 'test',
+          }),
+        } as any);
+
+        const initialState = useTableStore.getState();
+        expect(initialState.shouldHighlightSearchText).toBe(false);
+
+        let stateAfterFetch = initialState;
+        await act(async () => {
+          await useTableStore.getState().fetchEvalData(mockEvalId, { searchText: mockSearchText });
+          stateAfterFetch = useTableStore.getState();
+        });
+
+        expect(stateAfterFetch.shouldHighlightSearchText).toBe(true);
+      });
+
+      it('should update shouldHighlightSearchText based on the most recent completed request when multiple fetchEvalData calls are made in succession', async () => {
+        const mockEvalId = 'test-eval-id';
+        const mockCallApi = vi.mocked(callApi);
+
+        mockCallApi
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              table: { head: { prompts: [] }, body: [] },
+              totalCount: 0,
+              filteredCount: 0,
+              config: {},
+              version: 4,
+            }),
+          } as any)
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              table: { head: { prompts: [] }, body: [] },
+              totalCount: 0,
+              filteredCount: 0,
+              config: {},
+              version: 4,
+            }),
+          } as any)
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              table: { head: { prompts: [] }, body: [] },
+              totalCount: 0,
+              filteredCount: 0,
+              config: {},
+              version: 4,
+            }),
+          } as any);
+
+        await act(async () => {
+          await useTableStore
+            .getState()
+            .fetchEvalData(mockEvalId, { searchText: 'initial search' });
+          await useTableStore
+            .getState()
+            .fetchEvalData(mockEvalId, { searchText: 'another search' });
+          await useTableStore.getState().fetchEvalData(mockEvalId, { searchText: '' });
+        });
+
+        expect(useTableStore.getState().shouldHighlightSearchText).toBe(false);
+      });
+
+      it('should update shouldHighlightSearchText from true to false when fetchEvalData is called with non-empty search text and then with empty search text', async () => {
+        const mockEvalId = 'test-eval-id';
+        (callApi as Mock).mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            table: { head: { prompts: [] }, body: [] },
+            totalCount: 0,
+            filteredCount: 0,
+          }),
+        });
+
+        let state = useTableStore.getState();
+        expect(state.shouldHighlightSearchText).toBe(false);
+
+        await act(async () => {
+          await useTableStore.getState().fetchEvalData(mockEvalId, { searchText: 'test' });
+        });
+
+        state = useTableStore.getState();
+        expect(state.shouldHighlightSearchText).toBe(true);
+
+        await act(async () => {
+          await useTableStore.getState().fetchEvalData(mockEvalId, { searchText: '' });
+        });
+
+        state = useTableStore.getState();
+        expect(state.shouldHighlightSearchText).toBe(false);
+      });
+
+      it('should not show search highlights when isFetching is true, even if shouldHighlightSearchText is true', async () => {
+        const mockEvalId = 'test-eval-id';
+        let resolvePromise: (value: any) => void = () => {};
+        const _mockPromise = new Promise((resolve) => {
+          resolvePromise = resolve;
+        });
+
+        (callApi as Mock).mockReturnValue({
+          ok: true,
+          json: async () => ({
+            table: { head: { prompts: [] }, body: [] },
+            totalCount: 0,
+            filteredCount: 0,
+          }),
+        });
+
+        act(() => {
+          useTableStore.setState({ shouldHighlightSearchText: true });
+        });
+
+        const initialState = useTableStore.getState();
+        expect(initialState.isFetching).toBe(false);
+        expect(initialState.shouldHighlightSearchText).toBe(true);
+
+        let stateDuringFetch: any;
+        act(() => {
+          useTableStore.getState().fetchEvalData(mockEvalId, { searchText: 'test' });
+          stateDuringFetch = useTableStore.getState();
+        });
+
+        expect(stateDuringFetch.isFetching).toBe(true);
+        expect(stateDuringFetch.shouldHighlightSearchText).toBe(false);
+
+        await act(async () => {
+          resolvePromise({
+            table: { head: { prompts: [] }, body: [] },
+            totalCount: 0,
+            filteredCount: 0,
+          });
+        });
+
+        const state = useTableStore.getState();
+        expect(state.isFetching).toBe(false);
+        expect(state.shouldHighlightSearchText).toBe(true);
+      });
+    });
+  });
+
+  describe('setTableFromResultsFile', () => {
+    it("should set `filters.options.strategy` to only include 'basic' when `setTableFromResultsFile` is called with a resultsFile that has no strategies defined", () => {
+      const mockResultsFile: ResultsFile = {
+        version: 4,
+        config: {
+          redteam: {
+            strategies: [],
+          },
+        },
+        results: {
+          results: [],
+        } as any,
+        prompts: [],
+        createdAt: '2024-01-01T00:00:00.000Z',
+        author: 'test',
+      };
+
+      act(() => {
+        useTableStore.getState().setTableFromResultsFile(mockResultsFile);
+      });
+
+      const state = useTableStore.getState();
+      expect(state.filters.options.strategy).toEqual(['basic']);
+    });
+
+    it('should deduplicate strategy IDs in filters.options.strategy when resultsFile contains duplicate strategy IDs', () => {
+      const resultsFile: ResultsFile = {
+        version: 3,
+        config: {
+          redteam: {
+            strategies: ['strategy1', 'strategy2', 'strategy1'],
+          },
+        },
+        results: {
+          table: {
+            head: { prompts: [], vars: [] },
+            body: [],
+          },
+        },
+        prompts: [],
+      } as any;
+
+      act(() => {
+        useTableStore.getState().setTableFromResultsFile(resultsFile);
+      });
+
+      const state = useTableStore.getState();
+      expect(state.filters.options.strategy).toEqual(['strategy1', 'strategy2', 'basic']);
+    });
   });
 
   describe('computeAvailableMetrics', () => {
@@ -278,7 +575,19 @@ describe('useTableStore', () => {
       };
 
       act(() => {
-        useTableStore.getState().setTable(mockTable);
+        useTableStore.setState({
+          table: mockTable,
+          filters: {
+            values: {},
+            appliedCount: 0,
+            options: {
+              metric: computeAvailableMetrics(mockTable),
+              metadata: [],
+              plugin: [],
+              strategy: [],
+            },
+          },
+        });
       });
 
       const availableMetrics = useTableStore.getState().filters.options.metric;
@@ -314,7 +623,19 @@ describe('useTableStore', () => {
       };
 
       act(() => {
-        useTableStore.getState().setTable(mockTable);
+        useTableStore.setState({
+          table: mockTable,
+          filters: {
+            values: {},
+            appliedCount: 0,
+            options: {
+              metric: computeAvailableMetrics(mockTable),
+              metadata: [],
+              plugin: [],
+              strategy: [],
+            },
+          },
+        });
       });
 
       const availableMetrics = useTableStore.getState().filters.options.metric;
@@ -364,7 +685,19 @@ describe('useTableStore', () => {
       };
 
       act(() => {
-        useTableStore.getState().setTable(mockTable);
+        useTableStore.setState({
+          table: mockTable,
+          filters: {
+            values: {},
+            appliedCount: 0,
+            options: {
+              metric: computeAvailableMetrics(mockTable),
+              metadata: [],
+              plugin: [],
+              strategy: [],
+            },
+          },
+        });
       });
 
       const availableMetrics = useTableStore.getState().filters.options.metric;
@@ -396,7 +729,19 @@ describe('useTableStore', () => {
       };
 
       act(() => {
-        useTableStore.getState().setTable(mockTable);
+        useTableStore.setState({
+          table: mockTable,
+          filters: {
+            values: {},
+            appliedCount: 0,
+            options: {
+              metric: computeAvailableMetrics(mockTable),
+              metadata: [],
+              plugin: [],
+              strategy: [],
+            },
+          },
+        });
       });
 
       const availableMetrics = useTableStore.getState().filters.options.metric;
@@ -423,7 +768,19 @@ describe('useTableStore', () => {
       };
 
       act(() => {
-        useTableStore.getState().setTable(mockTable);
+        useTableStore.setState({
+          table: mockTable,
+          filters: {
+            values: {},
+            appliedCount: 0,
+            options: {
+              metric: computeAvailableMetrics(mockTable),
+              metadata: [],
+              plugin: [],
+              strategy: [],
+            },
+          },
+        });
       });
 
       const availableMetrics = useTableStore.getState().filters.options.metric;

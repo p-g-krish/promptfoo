@@ -41,6 +41,13 @@ function computeAvailableMetrics(table: EvaluateTable | null): string[] {
   return Array.from(metrics).sort();
 }
 
+function extractUniqueStrategyIds(strategies?: Array<string | { id: string }> | null): string[] {
+  const strategyIds =
+    strategies?.map((strategy) => (typeof strategy === 'string' ? strategy : strategy.id)) ?? [];
+
+  return Array.from(new Set([...strategyIds, 'basic']));
+}
+
 interface FetchEvalOptions {
   pageIndex?: number;
   pageSize?: number;
@@ -60,7 +67,7 @@ export interface PaginationState {
   pageSize: number;
 }
 
-export type ResultsFilterType = 'metric' | 'metadata';
+export type ResultsFilterType = 'metric' | 'metadata' | 'plugin' | 'strategy';
 
 export type ResultsFilterOperator = 'equals' | 'contains' | 'not_contains';
 
@@ -110,6 +117,8 @@ interface TableState {
 
   fetchEvalData: (id: string, options?: FetchEvalOptions) => Promise<EvalTableDTO | null>;
   isFetching: boolean;
+
+  shouldHighlightSearchText: boolean;
 
   /**
    * Adds a new filter to the filters array.
@@ -258,21 +267,23 @@ export const useTableStore = create<TableState>()((set, get) => ({
   setVersion: (version: number) => set(() => ({ version })),
 
   table: null,
-  setTable: (table: EvaluateTable | null) =>
+
+  /**
+   * Note: This method is only used when ratings are updated; therefore filters
+   * are not updated.
+   */
+  setTable: (table: EvaluateTable | null) => {
     set((prevState) => ({
       table,
       highlightedResultsCount: computeHighlightCount(table),
-      filters: {
-        ...prevState.filters,
-        options: {
-          metric: computeAvailableMetrics(table),
-          metadata: [],
-        },
-      },
-    })),
+      filters: prevState.filters,
+    }));
+  },
+
   setTableFromResultsFile: (resultsFile: ResultsFile) => {
     if (resultsFile.version && resultsFile.version >= 4) {
       const table = convertResultsToTable(resultsFile);
+
       set((prevState) => ({
         table,
         version: resultsFile.version,
@@ -282,6 +293,8 @@ export const useTableStore = create<TableState>()((set, get) => ({
           options: {
             metric: computeAvailableMetrics(table),
             metadata: [],
+            plugin: resultsFile.config?.redteam?.plugins?.map((plugin) => plugin.id) ?? [],
+            strategy: extractUniqueStrategyIds(resultsFile.config?.redteam?.strategies),
           },
         },
       }));
@@ -296,6 +309,8 @@ export const useTableStore = create<TableState>()((set, get) => ({
           options: {
             metric: computeAvailableMetrics(results.table),
             metadata: [],
+            plugin: resultsFile.config?.redteam?.plugins?.map((plugin) => plugin.id) ?? [],
+            strategy: extractUniqueStrategyIds(resultsFile.config?.redteam?.strategies),
           },
         },
       }));
@@ -313,6 +328,8 @@ export const useTableStore = create<TableState>()((set, get) => ({
 
   isFetching: false,
 
+  shouldHighlightSearchText: false,
+
   fetchEvalData: async (id: string, options: FetchEvalOptions = {}) => {
     const {
       pageIndex = 0,
@@ -325,7 +342,7 @@ export const useTableStore = create<TableState>()((set, get) => ({
 
     const { comparisonEvalIds } = useResultsViewSettingsStore.getState();
 
-    set({ isFetching: true });
+    set({ isFetching: true, shouldHighlightSearchText: false });
 
     try {
       console.log(`Fetching data for eval ${id} with options:`, options);
@@ -381,11 +398,14 @@ export const useTableStore = create<TableState>()((set, get) => ({
           author: data.author,
           evalId: skipSettingEvalId ? get().evalId : id,
           isFetching: false,
+          shouldHighlightSearchText: searchText !== '',
           filters: {
             ...prevState.filters,
             options: {
               metric: computeAvailableMetrics(data.table),
               metadata: [],
+              plugin: data.config?.redteam?.plugins?.map((plugin) => plugin.id) ?? [],
+              strategy: extractUniqueStrategyIds(data.config?.redteam?.strategies),
             },
           },
         }));
@@ -408,6 +428,8 @@ export const useTableStore = create<TableState>()((set, get) => ({
     options: {
       metric: [],
       metadata: [],
+      plugin: [],
+      strategy: [],
     },
   },
 

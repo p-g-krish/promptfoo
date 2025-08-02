@@ -107,6 +107,12 @@ Please note the PaLM (Bison) models are [scheduled for deprecation (April 2025)]
 - `vertex:text-multilingual-embedding-002` - Latest multilingual embeddings (2,048 tokens, ≤768d)
 - `vertex:multimodalembedding` - Multimodal embeddings for text, image, and video
 
+### Image Generation Models
+
+:::note
+Imagen models are available through [Google AI Studio](/docs/providers/google#image-generation-models) using the `google:image:` prefix.
+:::
+
 ## Model Capabilities
 
 ### Gemini 2.0 Pro Specifications
@@ -331,8 +337,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: google-github-actions/auth@v1
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
       - name: Run promptfoo tests
