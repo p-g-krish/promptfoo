@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import ErrorBoundary from '@app/components/ErrorBoundary';
 import { useToast } from '@app/hooks/useToast';
@@ -36,7 +36,6 @@ import yaml from 'js-yaml';
 import ReactMarkdown from 'react-markdown';
 import { Link, useNavigate } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
-import { useDebounce } from 'use-debounce';
 import CustomMetrics from './CustomMetrics';
 import EvalOutputCell from './EvalOutputCell';
 import EvalOutputPromptDialog from './EvalOutputPromptDialog';
@@ -49,6 +48,7 @@ import type { TruncatedTextProps } from './TruncatedText';
 import './ResultsTable.css';
 
 import ButtonGroup from '@mui/material/ButtonGroup';
+import { usePassingTestCounts, usePassRates, useTestCounts } from './hooks';
 
 const VARIABLE_COLUMN_SIZE_PX = 200;
 const PROMPT_COLUMN_SIZE_PX = 400;
@@ -127,7 +127,6 @@ interface ResultsTableProps {
   wordBreak: 'break-word' | 'break-all';
   filterMode: FilterMode;
   failureFilter: { [key: string]: boolean };
-  searchText: string;
   debouncedSearchText?: string;
   showStats: boolean;
   onFailureFilterToggle: (columnId: string, checked: boolean) => void;
@@ -151,8 +150,7 @@ function ResultsTable({
   wordBreak,
   filterMode,
   failureFilter,
-  searchText,
-  debouncedSearchText: externalDebouncedSearchText,
+  debouncedSearchText,
   showStats,
   onFailureFilterToggle,
   onSearchTextChange,
@@ -336,14 +334,6 @@ function ResultsTable({
     [body, head, setTable, evalId, inComparisonMode, showToast],
   );
 
-  const [localDebouncedSearchText] = useDebounce(searchText, 200);
-  const debouncedSearchText = externalDebouncedSearchText || localDebouncedSearchText;
-  const [isSearching, setIsSearching] = useState(false);
-
-  React.useEffect(() => {
-    setIsSearching(searchText !== debouncedSearchText && searchText !== '');
-  }, [searchText, debouncedSearchText]);
-
   const tableBody = React.useMemo(() => {
     return body.map((row, rowIndex) => ({
       ...row,
@@ -436,19 +426,9 @@ function ResultsTable({
     // Removed filters.appliedCount since appliedFiltersString covers it
   ]);
 
-  // TODO(ian): Switch this to use prompt.metrics field once most clients have updated.
-  const numGoodTests = React.useMemo(
-    () => head.prompts.map((prompt) => prompt.metrics?.testPassCount || 0),
-    [head.prompts, body],
-  );
-
-  const numTests = React.useMemo(
-    () =>
-      head.prompts.map(
-        (prompt) => (prompt.metrics?.testPassCount ?? 0) + (prompt.metrics?.testFailCount ?? 0),
-      ),
-    [head.prompts, body],
-  );
+  const testCounts = useTestCounts();
+  const passingTestCounts = usePassingTestCounts();
+  const passRates = usePassRates();
 
   const numAsserts = React.useMemo(
     () =>
@@ -652,10 +632,7 @@ function ResultsTable({
           columnHelper.accessor((row: EvaluateTableRow) => formatRowOutput(row.outputs[idx]), {
             id: `Prompt ${idx + 1}`,
             header: () => {
-              const pct =
-                numGoodTests[idx] && numTests[idx]
-                  ? ((numGoodTests[idx] / numTests[idx]) * 100.0).toFixed(2)
-                  : '0.00';
+              const pct = passRates[idx] ? passRates[idx].toFixed(2) : '0.00';
               const columnId = `Prompt ${idx + 1}`;
               const isChecked = failureFilter[columnId] || false;
 
@@ -672,8 +649,8 @@ function ResultsTable({
                       <Tooltip
                         title={`Average: $${Intl.NumberFormat(undefined, {
                           minimumFractionDigits: 1,
-                          maximumFractionDigits: prompt.metrics.cost / numTests[idx] >= 1 ? 2 : 4,
-                        }).format(prompt.metrics.cost / numTests[idx])} per test`}
+                          maximumFractionDigits: prompt.metrics.cost / testCounts[idx] >= 1 ? 2 : 4,
+                        }).format(prompt.metrics.cost / testCounts[idx])} per test`}
                       >
                         <span style={{ cursor: 'help' }}>
                           $
@@ -699,7 +676,7 @@ function ResultsTable({
                       <strong>Avg Tokens:</strong>{' '}
                       {Intl.NumberFormat(undefined, {
                         maximumFractionDigits: 0,
-                      }).format(prompt.metrics.tokenUsage.total / numTests[idx])}
+                      }).format(prompt.metrics.tokenUsage.total / testCounts[idx])}
                     </div>
                   ) : null}
                   {prompt.metrics?.totalLatencyMs ? (
@@ -707,7 +684,7 @@ function ResultsTable({
                       <strong>Avg Latency:</strong>{' '}
                       {Intl.NumberFormat(undefined, {
                         maximumFractionDigits: 0,
-                      }).format(prompt.metrics.totalLatencyMs / numTests[idx])}{' '}
+                      }).format(prompt.metrics.totalLatencyMs / testCounts[idx])}{' '}
                       ms
                     </div>
                   ) : null}
@@ -765,12 +742,13 @@ function ResultsTable({
                     <div className="summary">
                       <div
                         className={`highlight ${
-                          numGoodTests[idx] && numTests[idx]
-                            ? `success-${Math.round(((numGoodTests[idx] / numTests[idx]) * 100) / 20) * 20}`
+                          passRates[idx]
+                            ? `success-${Math.round(passRates[idx] / 20) * 20}`
                             : 'success-0'
                         }`}
                       >
-                        <strong>{pct}% passing</strong> ({numGoodTests[idx]}/{numTests[idx]} cases)
+                        <strong>{pct}% passing</strong> ({passingTestCounts[idx]}/{testCounts[idx]}{' '}
+                        cases)
                       </div>
                     </div>
                     {prompt.metrics?.testErrorCount && prompt.metrics.testErrorCount > 0 ? (
@@ -877,12 +855,14 @@ function ResultsTable({
     metricTotals,
     numAsserts,
     numGoodAsserts,
-    numGoodTests,
     onFailureFilterToggle,
     debouncedSearchText,
     showStats,
     filters.appliedCount,
     handleMetricFilterClick,
+    passRates,
+    passingTestCounts,
+    testCounts,
   ]);
 
   const descriptionColumn = React.useMemo(() => {
@@ -1030,27 +1010,6 @@ function ResultsTable({
     // of this component. This ensures that the pagination footer is always pinned to the bottom
     // of the viewport (because the parent container is a flexbox).
     <>
-      {isSearching && searchText && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: '60px',
-            right: '20px',
-            zIndex: 1000,
-            backgroundColor: 'rgba(25, 118, 210, 0.1)',
-            padding: '5px 10px',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Typography variant="body2" color="primary">
-            Searching...
-          </Typography>
-        </Box>
-      )}
-
       {filteredResultsCount === 0 &&
         !isFetching &&
         (debouncedSearchText || filterMode !== 'all' || filters.appliedCount > 0) && (

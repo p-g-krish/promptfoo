@@ -586,7 +586,7 @@ A local model via [ollama](/docs/providers/ollama/) would look similar:
 
 ```yaml
 redteam:
-  provider: ollama:chat:llama3.1
+  provider: ollama:chat:llama3.3
 ```
 
 :::warning
@@ -826,6 +826,8 @@ Configuration values can be set in multiple ways, with the following precedence 
 2. Remove irrelevant plugins for your use case
 3. Adjust `numTests` for individual plugins based on importance
 4. Run a red team eval and generate additional tests as needed
+
+For more information, see [Best Practices](/docs/red-team/troubleshooting/best-practices/).
 
 ## Example Configurations
 
