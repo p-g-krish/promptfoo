@@ -33,8 +33,10 @@ import { CohereChatCompletionProvider, CohereEmbeddingProvider } from './cohere'
 import { DatabricksMosaicAiChatCompletionProvider } from './databricks';
 import { EchoProvider } from './echo';
 import { FalImageGenerationProvider } from './fal';
+import { createGitHubProvider } from './github/index';
 import { GolangProvider } from './golangCompletion';
 import { AIStudioChatProvider } from './google/ai.studio';
+import { GoogleImageProvider } from './google/image';
 import { GoogleLiveProvider } from './google/live';
 import { VertexChatProvider, VertexEmbeddingProvider } from './google/vertex';
 import { GroqProvider } from './groq';
@@ -67,6 +69,7 @@ import { OpenAiImageProvider } from './openai/image';
 import { OpenAiModerationProvider } from './openai/moderation';
 import { OpenAiRealtimeProvider } from './openai/realtime';
 import { OpenAiResponsesProvider } from './openai/responses';
+import { createOpenRouterProvider } from './openrouter';
 import { parsePackageProvider } from './packageParser';
 import { createPerplexityProvider } from './perplexity';
 import { PortkeyChatCompletionProvider } from './portkey';
@@ -201,7 +204,7 @@ export const providerMap: ProviderFactory[] = [
       }
 
       throw new Error(
-        dedent`Unknown Anthropic model type or model name: ${modelType}. Use one of the following formats: 
+        dedent`Unknown Anthropic model type or model name: ${modelType}. Use one of the following formats:
         - anthropic:messages:<model name> - For Messages API
         - anthropic:completion:<model name> - For Completion API
         - anthropic:<model name> - Shorthand for Messages API with a known model name`,
@@ -522,18 +525,7 @@ export const providerMap: ProviderFactory[] = [
       providerPath: string,
       providerOptions: ProviderOptions,
       context: LoadApiProviderContext,
-    ) => {
-      const splits = providerPath.split(':');
-      const modelName = splits.slice(1).join(':');
-      return new OpenAiChatCompletionProvider(modelName, {
-        ...providerOptions,
-        config: {
-          ...providerOptions.config,
-          apiBaseUrl: 'https://models.inference.ai.azure.com',
-          apiKeyEnvar: 'GITHUB_TOKEN',
-        },
-      });
-    },
+    ) => createGitHubProvider(providerPath, providerOptions, context),
   },
   {
     test: (providerPath: string) => providerPath.startsWith('groq:'),
@@ -741,26 +733,9 @@ export const providerMap: ProviderFactory[] = [
       providerOptions: ProviderOptions,
       context: LoadApiProviderContext,
     ) => {
-      const splits = providerPath.split(':');
-      const modelName = splits.slice(1).join(':');
-      return new OpenAiChatCompletionProvider(modelName, {
-        ...providerOptions,
-        config: {
-          ...providerOptions.config,
-          apiBaseUrl: 'https://openrouter.ai/api/v1',
-          apiKeyEnvar: 'OPENROUTER_API_KEY',
-          passthrough: {
-            // Pass through OpenRouter-specific options
-            // https://openrouter.ai/docs/requests
-            ...(providerOptions.config.transforms && {
-              transforms: providerOptions.config.transforms,
-            }),
-            ...(providerOptions.config.models && { models: providerOptions.config.models }),
-            ...(providerOptions.config.route && { route: providerOptions.config.route }),
-            ...(providerOptions.config.provider && { provider: providerOptions.config.provider }),
-            ...(providerOptions.config.passthrough || {}),
-          },
-        },
+      return createOpenRouterProvider(providerPath, {
+        config: providerOptions,
+        env: context.env,
       });
     },
   },
@@ -844,6 +819,20 @@ export const providerMap: ProviderFactory[] = [
     ) => {
       const { createAimlApiProvider } = await import('./aimlapi');
       return createAimlApiProvider(providerPath, {
+        ...providerOptions,
+        env: context.env,
+      });
+    },
+  },
+  {
+    test: (providerPath: string) => providerPath.startsWith('docker:'),
+    create: async (
+      providerPath: string,
+      providerOptions: ProviderOptions,
+      context: LoadApiProviderContext,
+    ) => {
+      const { createDockerProvider } = await import('./docker');
+      return createDockerProvider(providerPath, {
         ...providerOptions,
         env: context.env,
       });
@@ -953,6 +942,9 @@ export const providerMap: ProviderFactory[] = [
         if (serviceType === 'live') {
           // This is a Live API request
           return new GoogleLiveProvider(modelName, providerOptions);
+        } else if (serviceType === 'image') {
+          // This is an Image Generation request
+          return new GoogleImageProvider(modelName, providerOptions);
         }
       }
 

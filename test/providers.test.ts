@@ -125,6 +125,33 @@ describe('loadApiProvider', () => {
     expect(provider).toBeDefined();
   });
 
+  it('should load OpenAI GPT-5 chat provider', async () => {
+    const provider = await loadApiProvider('openai:chat:gpt-5');
+    expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith('gpt-5', expect.any(Object));
+    expect(provider).toBeDefined();
+  });
+
+  it('should load OpenAI GPT-5 chat latest provider', async () => {
+    const provider = await loadApiProvider('openai:chat:gpt-5-chat-latest');
+    expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith(
+      'gpt-5-chat-latest',
+      expect.any(Object),
+    );
+    expect(provider).toBeDefined();
+  });
+
+  it('should load OpenAI GPT-5 nano chat provider', async () => {
+    const provider = await loadApiProvider('openai:chat:gpt-5-nano');
+    expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith('gpt-5-nano', expect.any(Object));
+    expect(provider).toBeDefined();
+  });
+
+  it('should load OpenAI GPT-5 mini chat provider', async () => {
+    const provider = await loadApiProvider('openai:chat:gpt-5-mini');
+    expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith('gpt-5-mini', expect.any(Object));
+    expect(provider).toBeDefined();
+  });
+
   it('should load OpenAI chat provider with default model', async () => {
     const provider = await loadApiProvider('openai:chat');
     expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith(
@@ -176,6 +203,28 @@ describe('loadApiProvider', () => {
         }),
       },
     );
+    expect(provider).toBeDefined();
+  });
+
+  it('should load GitHub provider with default model', async () => {
+    const provider = await loadApiProvider('github:');
+    expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith('openai/gpt-4.1', {
+      config: expect.objectContaining({
+        apiBaseUrl: 'https://models.github.ai',
+        apiKeyEnvar: 'GITHUB_TOKEN',
+      }),
+    });
+    expect(provider).toBeDefined();
+  });
+
+  it('should load GitHub provider with specific model', async () => {
+    const provider = await loadApiProvider('github:openai/gpt-4.1-mini');
+    expect(OpenAiChatCompletionProvider).toHaveBeenCalledWith('openai/gpt-4.1-mini', {
+      config: expect.objectContaining({
+        apiBaseUrl: 'https://models.github.ai',
+        apiKeyEnvar: 'GITHUB_TOKEN',
+      }),
+    });
     expect(provider).toBeDefined();
   });
 

@@ -1,5 +1,6 @@
 ---
 sidebar_label: GitHub Actions
+description: Automate LLM prompt testing in CI/CD with GitHub Actions integration. Compare prompt changes, view diffs, and analyze results directly in pull requests using promptfoo.
 ---
 
 # Testing Prompts with GitHub Actions
@@ -35,7 +36,7 @@ jobs:
     steps:
       # This cache is optional, but you'll save money and time by setting it up!
       - name: Set up promptfoo cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/promptfoo
           key: ${{ runner.os }}-promptfoo-v1

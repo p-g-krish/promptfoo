@@ -1,5 +1,6 @@
 ---
 sidebar_label: Google Vertex
+description: 'Deploy enterprise AI models with Google Cloud Vertex AI for production-scale machine learning and generative AI workloads'
 ---
 
 # Google Vertex
@@ -106,6 +107,12 @@ Please note the PaLM (Bison) models are [scheduled for deprecation (April 2025)]
 - `vertex:textembedding-gecko-multilingual@001` - Multilingual embeddings (2,048 tokens, 768d)
 - `vertex:text-multilingual-embedding-002` - Latest multilingual embeddings (2,048 tokens, ≤768d)
 - `vertex:multimodalembedding` - Multimodal embeddings for text, image, and video
+
+### Image Generation Models
+
+:::note
+Imagen models are available through [Google AI Studio](/docs/providers/google#image-generation-models) using the `google:image:` prefix.
+:::
 
 ## Model Capabilities
 
@@ -331,8 +338,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: google-github-actions/auth@v1
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
       - name: Run promptfoo tests
