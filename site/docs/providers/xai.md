@@ -1,6 +1,6 @@
 ---
 title: xAI (Grok) Provider
-description: Configure and use xAI's Grok models with promptfoo, including Grok-3 with reasoning capabilities
+description: Deploy xAI Grok models including Grok-3 with advanced reasoning for complex analysis and conversational AI applications
 keywords: [xai, grok, grok-3, grok-2, reasoning, vision, llm]
 ---
 
@@ -214,3 +214,27 @@ npx promptfoo@latest init --example xai
 ## See Also
 
 - [OpenAI Provider](/docs/providers/openai)
+
+## Troubleshooting
+
+### 502 Bad Gateway Errors
+
+If you encounter 502 Bad Gateway errors when using the xAI provider, this typically indicates:
+
+- An invalid or missing API key
+- Server issues on x.ai's side
+
+The xAI provider will provide helpful error messages to guide you in resolving these issues.
+
+**Solution**: Verify your `XAI_API_KEY` environment variable is set correctly. You can obtain an API key from [https://x.ai/](https://x.ai/).
+
+### Controlling Retries
+
+If you're experiencing timeouts or want to control retry behavior:
+
+- To disable retries for 5XX errors: `PROMPTFOO_RETRY_5XX=false`
+- To reduce retry delays: `PROMPTFOO_REQUEST_BACKOFF_MS=1000` (in milliseconds)
+
+## Reference
+
+- [x.ai documentation](https://docs.x.ai/)

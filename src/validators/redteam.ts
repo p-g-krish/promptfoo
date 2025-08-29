@@ -45,8 +45,13 @@ export const RedteamPluginObjectSchema = z.object({
           });
         }
       }),
-      z.string().startsWith('file://', {
-        message: 'Custom plugins must start with file:// (or use one of the built-in plugins)',
+      z.string().superRefine((val, ctx) => {
+        if (!val.startsWith('file://')) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid plugin id "${val}". Custom plugins must start with file:// or use a built-in plugin. See https://www.promptfoo.dev/docs/red-team/plugins for available plugins.`,
+          });
+        }
       }),
     ])
     .describe('Name of the plugin'),
@@ -76,8 +81,13 @@ export const RedteamPluginSchema = z.union([
           });
         }
       }),
-      z.string().startsWith('file://', {
-        message: 'Custom plugins must start with file:// (or use one of the built-in plugins)',
+      z.string().superRefine((val, ctx) => {
+        if (!val.startsWith('file://')) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid plugin id "${val}". Custom plugins must start with file:// or use a built-in plugin. See https://www.promptfoo.dev/docs/red-team/plugins for available plugins.`,
+          });
+        }
       }),
     ])
     .describe('Name of the plugin or path to custom plugin'),
@@ -138,6 +148,7 @@ export const RedteamGenerateOptionsSchema = z.object({
     .describe('Additional strategies to include'),
   cache: z.boolean().describe('Whether to use caching'),
   config: z.string().optional().describe('Path to the configuration file'),
+  target: z.string().optional().describe('Cloud provider target ID to run the scan on'),
   defaultConfig: z.record(z.unknown()).describe('Default configuration object'),
   defaultConfigPath: z.string().optional().describe('Path to the default configuration file'),
   delay: z
@@ -165,6 +176,7 @@ export const RedteamGenerateOptionsSchema = z.object({
   write: z.boolean().describe('Whether to write the output'),
   burpEscapeJson: z.boolean().describe('Whether to escape quotes in Burp payloads').optional(),
   progressBar: z.boolean().describe('Whether to show a progress bar').optional(),
+  configFromCloud: z.any().optional().describe('A configuration object loaded from cloud'),
 });
 
 /**

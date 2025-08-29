@@ -1,5 +1,6 @@
 ---
 sidebar_label: HTTP API
+description: Configure HTTP/HTTPS endpoints for custom LLM integrations with dynamic request transforms, variable substitution, and multi-provider API compatibility
 ---
 
 # HTTP/HTTPS API
@@ -523,6 +524,33 @@ providers:
           output: json.choices[0].message.content,
           guardrails: { flagged: context.response.headers['x-content-filtered'] === 'true' }
         }
+```
+
+### Interaction with Test Transforms
+
+The `transformResponse` output becomes the input for test-level transforms. Understanding this pipeline is important for complex evaluations:
+
+```yaml
+providers:
+  - id: https
+    config:
+      url: 'https://example.com/api'
+      # Step 1: Provider transform normalizes API response
+      transformResponse: 'json.data' # Extract data field
+
+tests:
+  - vars:
+      query: 'What is the weather?'
+    options:
+      # Step 2a: Test transform for assertions (receives provider transform output)
+      transform: 'output.answer'
+    assert:
+      - type: contains
+        value: 'sunny'
+
+      # Step 2b: Context transform for RAG assertions (also receives provider transform output)
+      - type: context-faithfulness
+        contextTransform: 'output.sources.join(" ")'
 ```
 
 ## Token Estimation
