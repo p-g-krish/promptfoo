@@ -150,7 +150,16 @@
                             "DATABRICKS_WORKSPACE_URL": {
                               "type": "string"
                             },
+                            "DOCKER_MODEL_RUNNER_BASE_URL": {
+                              "type": "string"
+                            },
+                            "DOCKER_MODEL_RUNNER_API_KEY": {
+                              "type": "string"
+                            },
                             "FAL_KEY": {
+                              "type": "string"
+                            },
+                            "GITHUB_TOKEN": {
                               "type": "string"
                             },
                             "GOOGLE_API_HOST": {
@@ -160,6 +169,15 @@
                               "type": "string"
                             },
                             "GOOGLE_API_KEY": {
+                              "type": "string"
+                            },
+                            "GOOGLE_PROJECT_ID": {
+                              "type": "string"
+                            },
+                            "GOOGLE_LOCATION": {
+                              "type": "string"
+                            },
+                            "GOOGLE_GENERATIVE_AI_API_KEY": {
                               "type": "string"
                             },
                             "GEMINI_API_KEY": {
@@ -527,12 +545,14 @@
                                               "contains",
                                               "contains-all",
                                               "contains-any",
+                                              "contains-html",
                                               "contains-json",
                                               "contains-sql",
                                               "contains-xml",
                                               "context-faithfulness",
                                               "context-recall",
                                               "context-relevance",
+                                              "conversation-relevance",
                                               "cost",
                                               "equals",
                                               "factuality",
@@ -543,6 +563,7 @@
                                               "icontains",
                                               "icontains-all",
                                               "icontains-any",
+                                              "is-html",
                                               "is-json",
                                               "is-refusal",
                                               "is-sql",
@@ -577,7 +598,7 @@
                                           },
                                           {
                                             "type": "string",
-                                            "enum": ["select-best", "human"]
+                                            "enum": ["select-best", "human", "max-score"]
                                           },
                                           {}
                                         ]
@@ -1121,8 +1142,13 @@
                           "excessive-agency",
                           "financial:calculation-error",
                           "financial:compliance-violation",
+                          "financial:confidential-disclosure",
+                          "financial:counterfactual",
                           "financial:data-leakage",
+                          "financial:defamation",
                           "financial:hallucination",
+                          "financial:impartiality",
+                          "financial:misconduct",
                           "financial:sycophancy",
                           "foundation",
                           "guardrails-eval",
@@ -1165,6 +1191,7 @@
                           "medical:anchoring-bias",
                           "medical:hallucination",
                           "medical:incorrect-knowledge",
+                          "medical:off-label-use",
                           "medical:prioritization-error",
                           "medical:sycophancy",
                           "misinformation",
@@ -1251,12 +1278,12 @@
                           "toxic-chat",
                           "toxicity",
                           "unsafebench",
+                          "unverifiable-claims",
                           "xstest"
                         ]
                       },
                       {
-                        "type": "string",
-                        "pattern": "^file\\:\\/\\/"
+                        "type": "string"
                       }
                     ],
                     "description": "Name of the plugin or path to custom plugin"
@@ -1307,8 +1334,13 @@
                               "excessive-agency",
                               "financial:calculation-error",
                               "financial:compliance-violation",
+                              "financial:confidential-disclosure",
+                              "financial:counterfactual",
                               "financial:data-leakage",
+                              "financial:defamation",
                               "financial:hallucination",
+                              "financial:impartiality",
+                              "financial:misconduct",
                               "financial:sycophancy",
                               "foundation",
                               "guardrails-eval",
@@ -1351,6 +1383,7 @@
                               "medical:anchoring-bias",
                               "medical:hallucination",
                               "medical:incorrect-knowledge",
+                              "medical:off-label-use",
                               "medical:prioritization-error",
                               "medical:sycophancy",
                               "misinformation",
@@ -1437,12 +1470,12 @@
                               "toxic-chat",
                               "toxicity",
                               "unsafebench",
+                              "unverifiable-claims",
                               "xstest"
                             ]
                           },
                           {
-                            "type": "string",
-                            "pattern": "^file\\:\\/\\/"
+                            "type": "string"
                           }
                         ],
                         "description": "Name of the plugin"
@@ -1506,7 +1539,6 @@
                           "morse",
                           "multilingual",
                           "other-encodings",
-                          "pandamonium",
                           "piglatin",
                           "prompt-injection",
                           "retry",
@@ -1539,7 +1571,7 @@
                   }
                 ]
               },
-              "description": "Strategies to use for redteam generation.\n\nDefaults to basic, jailbreak, jailbreak:composite\nSupports audio, base64, basic, best-of-n, camelcase, citation, crescendo, custom, default, emoji, gcg, goat, hex, homoglyph, image, jailbreak, jailbreak:composite, jailbreak:likert, jailbreak:tree, leetspeak, math-prompt, mischievous-user, morse, multilingual, other-encodings, pandamonium, piglatin, prompt-injection, retry, rot13, video",
+              "description": "Strategies to use for redteam generation.\n\nDefaults to basic, jailbreak, jailbreak:composite\nSupports audio, base64, basic, best-of-n, camelcase, citation, crescendo, custom, default, emoji, gcg, goat, hex, homoglyph, image, jailbreak, jailbreak:composite, jailbreak:likert, jailbreak:tree, leetspeak, math-prompt, mischievous-user, morse, multilingual, other-encodings, piglatin, prompt-injection, retry, rot13, video",
               "default": ["default"]
             },
             "maxConcurrency": {
@@ -1767,6 +1799,9 @@
               "type": "boolean"
             },
             "share": {
+              "type": "boolean"
+            },
+            "noShare": {
               "type": "boolean"
             },
             "progressBar": {

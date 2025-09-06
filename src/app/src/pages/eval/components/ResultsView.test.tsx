@@ -116,8 +116,12 @@ let mockTableStoreData = {
     options: {
       metric: [] as string[],
       metadata: [] as string[],
+      plugin: [] as string[],
+      strategy: [] as string[],
+      severity: [] as string[],
     },
   },
+  removeFilter: vi.fn(),
 };
 
 let mockResultsViewSettingsStoreData = {
@@ -177,6 +181,12 @@ vi.mock('@app/hooks/useShiftKey', () => {
   };
 });
 
+vi.mock('./ResultsCharts', () => {
+  return {
+    default: vi.fn(() => <div data-testid="results-charts">ResultsCharts Mock</div>),
+  };
+});
+
 declare global {
   interface Window {
     resizeHandler: any;
@@ -220,8 +230,12 @@ describe('ResultsView', () => {
         options: {
           metric: [] as string[],
           metadata: [] as string[],
+          plugin: [] as string[],
+          strategy: [] as string[],
+          severity: [] as string[],
         },
       },
+      removeFilter: vi.fn(),
     };
 
     mockResultsViewSettingsStoreData = {
@@ -240,6 +254,37 @@ describe('ResultsView', () => {
     };
   });
 
+  it('renders ResultsCharts when table, config, and more than one prompt are present and viewport height is at least 1100px', () => {
+    Object.defineProperty(window, 'innerHeight', {
+      writable: true,
+      configurable: true,
+      value: 1200,
+    });
+
+    mockTableStoreData = {
+      ...mockTableStoreData,
+      table: {
+        head: {
+          prompts: [{ provider: 'test-provider' }, { provider: 'test-provider-2' }],
+          vars: ['Variable 1'],
+        },
+        body: [
+          {
+            outputs: [{ pass: true, score: 1, text: 'test output' }],
+            test: {},
+            vars: ['test var'],
+          },
+        ],
+      },
+      config: { description: 'Test Config', tags: {} },
+    };
+
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    expect(screen.getByTestId('results-charts')).toBeInTheDocument();
+  });
   it('renders without crashing', () => {
     renderWithProviders(
       <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
@@ -311,6 +356,9 @@ describe('ResultsView', () => {
         options: {
           metric: ['accuracy', 'f1-score'],
           metadata: [],
+          plugin: [],
+          strategy: [],
+          severity: [],
         },
       },
     };
@@ -363,5 +411,233 @@ describe('ResultsView', () => {
     }
 
     expect(container).toBeInTheDocument();
+  });
+
+  it('renders ResultsView without crashing when columnVisibility and recentEvals props are not passed to ResultsCharts', () => {
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    expect(screen.getByText('Table Settings')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search or select an eval...')).toBeInTheDocument();
+  });
+
+  it('should not render ResultsCharts when all prompts are hidden', () => {
+    mockTableStoreData.table = {
+      head: {
+        prompts: [{ provider: 'test-provider' }, { provider: 'another-provider' }],
+        vars: ['Variable 1'],
+      },
+      body: [
+        {
+          outputs: [{ pass: true, score: 1, text: 'test output' }],
+          test: {},
+          vars: ['test var'],
+        },
+      ],
+    };
+    mockResultsViewSettingsStoreData = {
+      ...mockResultsViewSettingsStoreData,
+      columnStates: {
+        '1': {
+          selectedColumns: ['Variable 1'],
+          columnVisibility: { 'Variable 1': true, 'Prompt 1': false },
+        },
+      },
+    };
+
+    vi.mock('./store', () => ({
+      useTableStore: vi.fn(() => mockTableStoreData),
+      useResultsViewSettingsStore: vi.fn(() => mockResultsViewSettingsStoreData),
+    }));
+
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    expect(screen.queryByTestId('results-charts')).toBeNull();
+  });
+
+  it('hides ResultsCharts when viewport height is less than 1100px', () => {
+    Object.defineProperty(window, 'innerHeight', {
+      writable: true,
+      configurable: true,
+      value: 900,
+    });
+
+    mockTableStoreData.table = {
+      head: {
+        prompts: [{ provider: 'test-provider' }, { provider: 'test-provider' }],
+        vars: ['Variable 1'],
+      },
+      body: [
+        {
+          outputs: [{ pass: true, score: 1, text: 'test output' }],
+          test: {},
+          vars: ['test var'],
+        },
+      ],
+    };
+
+    mockTableStoreData.config = { description: 'Test Config', tags: {} };
+
+    const { container } = renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    expect(screen.queryByTestId('results-charts')).toBeNull();
+    expect(container).toBeInTheDocument();
+  });
+
+  it('renders ResultsCharts with scores outside the normal range', () => {
+    mockTableStoreData.table = {
+      head: {
+        prompts: [{ provider: 'test-provider' }, { provider: 'another-provider' }],
+        vars: ['Variable 1'],
+      },
+      body: [
+        {
+          outputs: [{ pass: true, score: -0.5, text: 'test output' }],
+          test: {},
+          vars: ['test var'],
+        },
+        {
+          outputs: [{ pass: false, score: 1.5, text: 'test output 2' }],
+          test: {},
+          vars: ['test var 2'],
+        },
+      ],
+    };
+    mockTableStoreData.config = { description: 'Test Config', tags: {} };
+
+    mockResultsViewSettingsStoreData = {
+      ...mockResultsViewSettingsStoreData,
+      renderMarkdown: true,
+    };
+
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    const showChartsButton = screen.getByText('Show Charts');
+    expect(showChartsButton).toBeInTheDocument();
+  });
+
+  it('renders a severity filter chip with capitalized severity value when a severity filter is applied', () => {
+    mockTableStoreData = {
+      ...mockTableStoreData,
+      filters: {
+        values: {
+          severityFilter: {
+            id: 'severityFilter',
+            type: 'severity',
+            operator: 'equals',
+            value: 'critical',
+            field: undefined,
+            logicOperator: 'and',
+            sortIndex: 0,
+          },
+        },
+        appliedCount: 1,
+        options: {
+          metric: [],
+          metadata: [],
+          plugin: [],
+          strategy: [],
+          severity: [],
+        },
+      },
+    };
+
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    expect(screen.getByText('Severity: Critical')).toBeInTheDocument();
+  });
+
+  it('displays severity filter chip with existing capitalization', () => {
+    mockTableStoreData = {
+      ...mockTableStoreData,
+      filters: {
+        values: {
+          severityFilter: {
+            id: 'severityFilter',
+            type: 'severity',
+            operator: 'equals',
+            value: 'MiXeD',
+            logicOperator: 'and',
+            field: undefined,
+            sortIndex: 0,
+          },
+        },
+        appliedCount: 1,
+        options: {
+          metric: [],
+          metadata: [],
+          plugin: [],
+          strategy: [],
+          severity: [],
+        },
+      },
+    };
+
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    const chip = screen.getByText('Severity: MiXeD');
+    expect(chip).toBeInTheDocument();
+  });
+
+  it('renders without crashing when a severity filter with an empty value is applied', () => {
+    mockTableStoreData = {
+      ...mockTableStoreData,
+      filters: {
+        values: {
+          severityFilter: {
+            id: 'severityFilter',
+            type: 'severity',
+            operator: 'equals',
+            value: '',
+            logicOperator: 'and',
+            field: undefined,
+            sortIndex: 0,
+          },
+        },
+        appliedCount: 1,
+        options: {
+          metric: [],
+          metadata: [],
+          plugin: [],
+          strategy: [],
+          severity: [],
+        },
+      },
+    };
+
+    renderWithProviders(
+      <ResultsView recentEvals={mockRecentEvals} onRecentEvalSelected={mockOnRecentEvalSelected} />,
+    );
+
+    expect(screen.getByText('Table Settings')).toBeInTheDocument();
+  });
+
+  it('renders with an empty search input when defaultEvalId is not in recentEvals', () => {
+    mockTableStoreData = {
+      ...mockTableStoreData,
+      evalId: 'nonexistent-eval-id',
+    };
+
+    renderWithProviders(
+      <ResultsView
+        recentEvals={mockRecentEvals}
+        onRecentEvalSelected={mockOnRecentEvalSelected}
+        defaultEvalId="nonexistent-eval-id"
+      />,
+    );
+
+    const searchInput = screen.getByPlaceholderText('Search or select an eval...');
+    expect(searchInput).toHaveValue('Test Config');
   });
 });

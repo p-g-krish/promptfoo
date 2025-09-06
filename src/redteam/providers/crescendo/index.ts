@@ -7,6 +7,8 @@ import invariant from '../../../util/invariant';
 import { extractFirstJsonObject, safeJsonStringify } from '../../../util/json';
 import { getNunjucksEngine } from '../../../util/templates';
 import { sleep } from '../../../util/time';
+import { TokenUsageTracker } from '../../../util/tokenUsage';
+import { accumulateResponseTokenUsage, createEmptyTokenUsage } from '../../../util/tokenUsageUtils';
 import { shouldGenerateRemote } from '../../remoteGeneration';
 import { isBasicRefusal } from '../../util';
 import { getGoalRubric } from '../prompts';
@@ -70,6 +72,8 @@ interface CrescendoResponse extends ProviderResponse {
 interface CrescendoConfig {
   injectVar: string;
   maxTurns?: number;
+  /** @deprecated Use maxTurns instead */
+  maxRounds?: number;
   maxBacktracks?: number;
   redteamProvider: RedteamFileConfig['provider'];
   excludeTargetOutputFromAgenticAttackGeneration?: boolean;
@@ -122,7 +126,8 @@ export class CrescendoProvider implements ApiProvider {
   constructor(config: CrescendoConfig) {
     // Create a copy of config to avoid mutating the original
     this.config = { ...config };
-    this.maxTurns = config.maxTurns || DEFAULT_MAX_TURNS;
+    // Support backwards compatibility: use maxRounds if maxTurns is not provided
+    this.maxTurns = config.maxTurns || config.maxRounds || DEFAULT_MAX_TURNS;
     this.maxBacktracks = config.maxBacktracks || DEFAULT_MAX_BACKTRACKS;
     this.nunjucks = getNunjucksEngine();
     this.memory = new MemorySystem();
@@ -253,19 +258,17 @@ export class CrescendoProvider implements ApiProvider {
       | 'Max rounds reached'
       | 'Max backtracks reached' = 'Max rounds reached';
 
-    const totalTokenUsage = {
-      total: 0,
-      prompt: 0,
-      completion: 0,
-      numRequests: 0,
-      cached: 0,
-    };
+    const totalTokenUsage: TokenUsage = createEmptyTokenUsage();
 
     const systemPrompt = this.nunjucks.renderString(CRESCENDO_SYSTEM_PROMPT, {
       conversationObjective: this.userGoal,
       currentRound: roundNum + 1,
       maxTurns: this.maxTurns,
       purpose: context?.test?.metadata?.purpose,
+      modifierSection:
+        Object.entries(context?.test?.metadata?.modifiers || {})
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n') || undefined,
     });
 
     this.memory.addMessage(this.redTeamingChatConversationId, {
@@ -287,28 +290,19 @@ export class CrescendoProvider implements ApiProvider {
 
     // Generate goal-specific evaluation rubric
     const additionalRubric = getGoalRubric(this.userGoal);
-
     while (roundNum < this.maxTurns) {
       try {
         roundNum++;
 
         logger.debug(`\n[Crescendo] ROUND ${roundNum}\n`);
 
-        const { generatedQuestion: attackPrompt, tokenUsage: attackTokenUsage } =
-          await this.getAttackPrompt(
-            roundNum,
-            evalFlag,
-            lastResponse,
-            lastFeedback,
-            objectiveScore,
-          );
-        if (attackTokenUsage) {
-          totalTokenUsage.total += attackTokenUsage.total || 0;
-          totalTokenUsage.prompt += attackTokenUsage.prompt || 0;
-          totalTokenUsage.completion += attackTokenUsage.completion || 0;
-          totalTokenUsage.numRequests += attackTokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += attackTokenUsage.cached || 0;
-        }
+        const { generatedQuestion: attackPrompt } = await this.getAttackPrompt(
+          roundNum,
+          evalFlag,
+          lastResponse,
+          lastFeedback,
+          objectiveScore,
+        );
 
         if (!attackPrompt) {
           logger.debug('[Crescendo] failed to generate a question. Will skip turn and try again');
@@ -328,13 +322,7 @@ export class CrescendoProvider implements ApiProvider {
           options,
         );
         lastResponse = response;
-        if (lastResponse.tokenUsage) {
-          totalTokenUsage.total += lastResponse.tokenUsage.total || 0;
-          totalTokenUsage.prompt += lastResponse.tokenUsage.prompt || 0;
-          totalTokenUsage.completion += lastResponse.tokenUsage.completion || 0;
-          totalTokenUsage.numRequests += lastResponse.tokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += lastResponse.tokenUsage.cached || 0;
-        }
+        accumulateResponseTokenUsage(totalTokenUsage, lastResponse);
 
         if (lastResponse.sessionId && this.stateful) {
           vars['sessionId'] = lastResponse.sessionId;
@@ -354,13 +342,6 @@ export class CrescendoProvider implements ApiProvider {
           goal: this.userGoal,
           purpose: context?.test?.metadata?.purpose,
         });
-        if (unblockingResult.tokenUsage) {
-          totalTokenUsage.total += unblockingResult.tokenUsage.total || 0;
-          totalTokenUsage.prompt += unblockingResult.tokenUsage.prompt || 0;
-          totalTokenUsage.completion += unblockingResult.tokenUsage.completion || 0;
-          totalTokenUsage.numRequests += unblockingResult.tokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += unblockingResult.tokenUsage.cached || 0;
-        }
 
         if (unblockingResult.success && unblockingResult.unblockingPrompt) {
           // Target is asking a blocking question, send the unblocking answer
@@ -379,13 +360,7 @@ export class CrescendoProvider implements ApiProvider {
             options,
           );
 
-          if (unblockingResponse.tokenUsage) {
-            totalTokenUsage.total += unblockingResponse.tokenUsage.total || 0;
-            totalTokenUsage.prompt += unblockingResponse.tokenUsage.prompt || 0;
-            totalTokenUsage.completion += unblockingResponse.tokenUsage.completion || 0;
-            totalTokenUsage.numRequests += unblockingResponse.tokenUsage.numRequests ?? 1;
-            totalTokenUsage.cached += unblockingResponse.tokenUsage.cached || 0;
-          }
+          accumulateResponseTokenUsage(totalTokenUsage, unblockingResponse);
 
           // Update lastResponse to the unblocking response and continue
           lastResponse = unblockingResponse;
@@ -451,14 +426,6 @@ export class CrescendoProvider implements ApiProvider {
 
             graderPassed = grade.pass;
             storedGraderResult = grade;
-            if (grade.tokensUsed) {
-              totalTokenUsage.total += grade.tokensUsed.total || 0;
-              totalTokenUsage.prompt += grade.tokensUsed.prompt || 0;
-              totalTokenUsage.completion += grade.tokensUsed.completion || 0;
-              totalTokenUsage.cached += grade.tokensUsed.cached || 0;
-            } else {
-              totalTokenUsage.numRequests = (totalTokenUsage.numRequests || 0) + 1;
-            }
           }
         }
 
@@ -481,14 +448,7 @@ export class CrescendoProvider implements ApiProvider {
           }
         }
 
-        const [evalScore, evalTokenUsage] = await this.getEvalScore(lastResponse.output);
-        if (evalTokenUsage) {
-          totalTokenUsage.total += evalTokenUsage.total || 0;
-          totalTokenUsage.prompt += evalTokenUsage.prompt || 0;
-          totalTokenUsage.completion += evalTokenUsage.completion || 0;
-          totalTokenUsage.numRequests += evalTokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += evalTokenUsage.cached || 0;
-        }
+        const evalScore = await this.getEvalScore(lastResponse.output);
         evalFlag = evalScore.value;
         evalPercentage = evalScore.metadata;
         objectiveScore = {
@@ -576,7 +536,7 @@ export class CrescendoProvider implements ApiProvider {
     lastResponse: TargetResponse,
     lastFeedback: string,
     objectiveScore?: { value: number; rationale: string },
-  ): Promise<{ generatedQuestion: string | undefined; tokenUsage?: TokenUsage }> {
+  ): Promise<{ generatedQuestion: string | undefined }> {
     logger.debug(
       `[Crescendo] getAttackPrompt called: round=${roundNum}, evalFlag=${evalFlag}, objectiveScore=${JSON.stringify(
         objectiveScore,
@@ -620,6 +580,9 @@ export class CrescendoProvider implements ApiProvider {
       },
       vars: {},
     });
+
+    TokenUsageTracker.getInstance().trackUsage(redTeamingChat.id(), response.tokenUsage);
+
     if (redTeamingChat.delay) {
       logger.debug(`[Crescendo] Sleeping for ${redTeamingChat.delay}ms`);
       await sleep(redTeamingChat.delay);
@@ -631,7 +594,6 @@ export class CrescendoProvider implements ApiProvider {
       logger.debug(`[Crescendo] No output from redteam provider: ${JSON.stringify(response)}`);
       return {
         generatedQuestion: undefined,
-        tokenUsage: undefined,
       };
     }
 
@@ -679,7 +641,6 @@ export class CrescendoProvider implements ApiProvider {
 
     return {
       generatedQuestion: parsedOutput.generatedQuestion,
-      tokenUsage: response.tokenUsage,
     };
   }
 
@@ -810,7 +771,7 @@ export class CrescendoProvider implements ApiProvider {
     return [parsed.value, parsed.rationale];
   }
 
-  private async getEvalScore(lastResponse: string): Promise<[any, TokenUsage | undefined]> {
+  private async getEvalScore(lastResponse: string): Promise<any> {
     logger.debug(
       `[Crescendo] Getting eval score for response: ${lastResponse.substring(0, 100)}...`,
     );
@@ -836,6 +797,7 @@ export class CrescendoProvider implements ApiProvider {
       },
       vars: {},
     });
+    TokenUsageTracker.getInstance().trackUsage(scoringProvider.id(), evalResponse.tokenUsage);
     if (scoringProvider.delay) {
       logger.debug(`[Crescendo] Sleeping for ${scoringProvider.delay}ms`);
       await sleep(scoringProvider.delay);
@@ -866,7 +828,7 @@ export class CrescendoProvider implements ApiProvider {
       `Expected eval grader metadata to be a number: ${parsed}`,
     );
 
-    return [parsed, evalResponse.tokenUsage];
+    return parsed;
   }
 
   private async backtrackMemory(conversationId: string): Promise<string> {

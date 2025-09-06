@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { fromError } from 'zod-validation-error';
 import { disableCache } from '../cache';
 import cliState from '../cliState';
-import { getEnvFloat, getEnvInt } from '../envars';
+import { getEnvBool, getEnvFloat, getEnvInt } from '../envars';
 import { DEFAULT_MAX_CONCURRENCY, evaluate } from '../evaluator';
 import { checkEmailStatusOrExit, promptForEmailUnverified } from '../globalConfig/accounts';
 import { cloudConfig } from '../globalConfig/cloud';
@@ -22,12 +22,14 @@ import telemetry from '../telemetry';
 import { CommandLineOptionsSchema, OutputFileExtension, TestSuiteSchema } from '../types';
 import { isApiProvider } from '../types/providers';
 import { isRunningUnderNpx, printBorder, setupEnv, writeMultipleOutputs } from '../util';
+import { checkCloudPermissions } from '../util/cloud';
 import { clearConfigCache, loadDefaultConfig } from '../util/config/default';
 import { resolveConfigs } from '../util/config/load';
 import { maybeLoadFromExternalFile } from '../util/file';
 import { formatDuration } from '../util/formatDuration';
 import invariant from '../util/invariant';
 import { TokenUsageTracker } from '../util/tokenUsage';
+import { accumulateTokenUsage, createEmptyTokenUsage } from '../util/tokenUsageUtils';
 import { filterProviders } from './eval/filterProviders';
 import { filterTests } from './eval/filterTests';
 import { notCloudEnabledShareInstructions } from './share';
@@ -47,6 +49,7 @@ const EvalCommandSchema = CommandLineOptionsSchema.extend({
   help: z.boolean().optional(),
   interactiveProviders: z.boolean().optional(),
   remote: z.boolean().optional(),
+  noShare: z.boolean().optional(),
 }).partial();
 
 type EvalCommandOptions = z.infer<typeof EvalCommandSchema>;
@@ -101,11 +104,13 @@ export async function doEval(
   defaultConfigPath: string | undefined,
   evaluateOptions: EvaluateOptions,
 ): Promise<Eval> {
+  // Phase 1: Load environment from CLI args (preserves existing behavior)
   setupEnv(cmdObj.envPath);
 
   let config: Partial<UnifiedConfig> | undefined = undefined;
   let testSuite: TestSuite | undefined = undefined;
   let _basePath: string | undefined = undefined;
+  let commandLineOptions: Record<string, any> | undefined = undefined;
 
   const runEvaluation = async (initialization?: boolean) => {
     const startTime = Date.now();
@@ -145,16 +150,18 @@ export async function doEval(
       }
     }
 
-    // Misc settings
-    const iterations = cmdObj.repeat ?? Number.NaN;
-    const repeat = Number.isSafeInteger(cmdObj.repeat) && iterations > 0 ? iterations : 1;
+    ({
+      config,
+      testSuite,
+      basePath: _basePath,
+      commandLineOptions,
+    } = await resolveConfigs(cmdObj, defaultConfig));
 
-    if (!cmdObj.cache || repeat > 1) {
-      logger.info('Cache is disabled.');
-      disableCache();
+    // Phase 2: Load environment from config files if not already set via CLI
+    if (!cmdObj.envPath && commandLineOptions?.envPath) {
+      logger.debug(`Loading additional environment from config: ${commandLineOptions.envPath}`);
+      setupEnv(commandLineOptions.envPath);
     }
-
-    ({ config, testSuite, basePath: _basePath } = await resolveConfigs(cmdObj, defaultConfig));
 
     // Check if config has redteam section but no test cases
     if (
@@ -177,25 +184,39 @@ export async function doEval(
       Array.isArray(config.providers) &&
       config.providers.length > 0 &&
       typeof config.providers[0] === 'object' &&
-      config.providers[0].id === 'http' &&
-      config.providers[0].config.url.includes('promptfoo.app')
+      config.providers[0].id === 'http'
     ) {
-      telemetry.record('feature_used', {
-        feature: 'redteam_run_with_example',
-      });
+      const maybeUrl: unknown = (config.providers[0] as any)?.config?.url;
+      if (typeof maybeUrl === 'string' && maybeUrl.includes('promptfoo.app')) {
+        telemetry.record('feature_used', {
+          feature: 'redteam_run_with_example',
+        });
+      }
     }
 
     // Ensure evaluateOptions from the config file are applied
     if (config.evaluateOptions) {
       evaluateOptions = {
-        ...config.evaluateOptions,
         ...evaluateOptions,
+        ...config.evaluateOptions,
       };
+    }
+
+    // Misc settings with proper CLI vs config priority
+    // CLI values explicitly provided by user should override config, but defaults should not
+    const iterations = cmdObj.repeat ?? evaluateOptions.repeat ?? Number.NaN;
+    const repeat = Number.isSafeInteger(iterations) && iterations > 0 ? iterations : 1;
+
+    const cache = cmdObj.cache ?? evaluateOptions.cache;
+
+    if (!cache || repeat > 1) {
+      logger.info('Cache is disabled.');
+      disableCache();
     }
 
     let maxConcurrency =
       cmdObj.maxConcurrency ?? evaluateOptions.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY;
-    const delay = cmdObj.delay ?? 0;
+    const delay = cmdObj.delay ?? evaluateOptions.delay ?? 0;
 
     if (delay > 0) {
       maxConcurrency = 1;
@@ -231,12 +252,22 @@ export async function doEval(
       cmdObj.filterProviders || cmdObj.filterTargets,
     );
 
+    await checkCloudPermissions(config as UnifiedConfig);
+
     const options: EvaluateOptions = {
       ...evaluateOptions,
-      showProgressBar: getLogLevel() === 'debug' ? false : cmdObj.progressBar,
+      showProgressBar:
+        getLogLevel() === 'debug'
+          ? false
+          : cmdObj.progressBar !== undefined
+            ? cmdObj.progressBar !== false
+            : evaluateOptions.showProgressBar !== undefined
+              ? evaluateOptions.showProgressBar
+              : true,
       repeat,
       delay: !Number.isNaN(delay) && delay > 0 ? delay : undefined,
       maxConcurrency,
+      cache,
     };
 
     if (cmdObj.grader) {
@@ -297,7 +328,13 @@ export async function doEval(
     // Clear results from memory to avoid memory issues
     evalRecord.clearResults();
 
-    const wantsToShare = cmdObj.share && config.sharing;
+    // Check for explicit disable signals first
+    const hasExplicitDisable =
+      cmdObj.share === false || cmdObj.noShare === true || getEnvBool('PROMPTFOO_DISABLE_SHARING');
+
+    const wantsToShare = hasExplicitDisable
+      ? false
+      : cmdObj.share || config.sharing || cloudConfig.isEnabled();
 
     const shareableUrl =
       wantsToShare && isSharingEnabled(evalRecord) ? await createShareableUrl(evalRecord) : null;
@@ -305,29 +342,7 @@ export async function doEval(
     let successes = 0;
     let failures = 0;
     let errors = 0;
-    const tokenUsage = {
-      total: 0,
-      prompt: 0,
-      completion: 0,
-      cached: 0,
-      numRequests: 0,
-      completionDetails: {
-        reasoning: 0,
-        acceptedPrediction: 0,
-        rejectedPrediction: 0,
-      },
-      assertions: {
-        total: 0,
-        prompt: 0,
-        completion: 0,
-        cached: 0,
-        completionDetails: {
-          reasoning: 0,
-          acceptedPrediction: 0,
-          rejectedPrediction: 0,
-        },
-      },
-    };
+    const tokenUsage = createEmptyTokenUsage();
 
     // Calculate our total successes and failures
     for (const prompt of evalRecord.prompts) {
@@ -340,34 +355,7 @@ export async function doEval(
       if (prompt.metrics?.testErrorCount) {
         errors += prompt.metrics.testErrorCount;
       }
-      tokenUsage.total += prompt.metrics?.tokenUsage?.total || 0;
-      tokenUsage.prompt += prompt.metrics?.tokenUsage?.prompt || 0;
-      tokenUsage.completion += prompt.metrics?.tokenUsage?.completion || 0;
-      tokenUsage.cached += prompt.metrics?.tokenUsage?.cached || 0;
-      tokenUsage.numRequests += prompt.metrics?.tokenUsage?.numRequests || 0;
-      if (prompt.metrics?.tokenUsage?.completionDetails) {
-        tokenUsage.completionDetails.reasoning +=
-          prompt.metrics.tokenUsage.completionDetails.reasoning || 0;
-        tokenUsage.completionDetails.acceptedPrediction +=
-          prompt.metrics.tokenUsage.completionDetails.acceptedPrediction || 0;
-        tokenUsage.completionDetails.rejectedPrediction +=
-          prompt.metrics.tokenUsage.completionDetails.rejectedPrediction || 0;
-      }
-      if (prompt.metrics?.tokenUsage?.assertions) {
-        tokenUsage.assertions.total += prompt.metrics.tokenUsage.assertions.total || 0;
-        tokenUsage.assertions.prompt += prompt.metrics.tokenUsage.assertions.prompt || 0;
-        tokenUsage.assertions.completion += prompt.metrics.tokenUsage.assertions.completion || 0;
-        tokenUsage.assertions.cached += prompt.metrics.tokenUsage.assertions.cached || 0;
-
-        if (prompt.metrics.tokenUsage.assertions.completionDetails) {
-          tokenUsage.assertions.completionDetails.reasoning +=
-            prompt.metrics.tokenUsage.assertions.completionDetails.reasoning || 0;
-          tokenUsage.assertions.completionDetails.acceptedPrediction +=
-            prompt.metrics.tokenUsage.assertions.completionDetails.acceptedPrediction || 0;
-          tokenUsage.assertions.completionDetails.rejectedPrediction +=
-            prompt.metrics.tokenUsage.assertions.completionDetails.rejectedPrediction || 0;
-        }
-      }
+      accumulateTokenUsage(tokenUsage, prompt.metrics?.tokenUsage);
     }
     const totalTests = successes + failures + errors;
     const passRate = (successes / totalTests) * 100;
@@ -443,6 +431,7 @@ export async function doEval(
     const durationDisplay = formatDuration(duration);
 
     const isRedteam = Boolean(config.redteam);
+    const tracker = TokenUsageTracker.getInstance();
 
     // Handle token usage display
     if (tokenUsage.total > 0 || (tokenUsage.prompt || 0) + (tokenUsage.completion || 0) > 0) {
@@ -481,14 +470,14 @@ export async function doEval(
           `    ${chalk.gray('Cached:')} ${chalk.green(evalTokens.cached.toLocaleString())}`,
         );
       }
-      if (evalTokens.completionDetails.reasoning > 0) {
+      if (evalTokens.completionDetails?.reasoning && evalTokens.completionDetails.reasoning > 0) {
         logger.info(
           `    ${chalk.gray('Reasoning:')} ${chalk.white(evalTokens.completionDetails.reasoning.toLocaleString())}`,
         );
       }
 
       // Provider breakdown
-      const tracker = TokenUsageTracker.getInstance();
+
       const providerIds = tracker.getProviderIds();
       if (providerIds.length > 1) {
         logger.info(`\n  ${chalk.cyan.bold('Provider Breakdown:')}`);
@@ -504,7 +493,7 @@ export async function doEval(
             // Extract just the provider ID part (remove class name in parentheses)
             const displayId = id.includes(' (') ? id.substring(0, id.indexOf(' (')) : id;
             logger.info(
-              `    ${chalk.gray(displayId + ':')} ${chalk.white(displayTotal.toLocaleString())}`,
+              `    ${chalk.gray(displayId + ':')} ${chalk.white(displayTotal.toLocaleString())} (${usage.numRequests} requests)`,
             );
 
             // Show breakdown if there are individual components
@@ -531,23 +520,30 @@ export async function doEval(
       }
 
       // Grading tokens
-      if (tokenUsage.assertions.total > 0) {
+      if (tokenUsage.assertions && tokenUsage.assertions.total && tokenUsage.assertions.total > 0) {
         logger.info(`\n  ${chalk.magenta.bold('Grading:')}`);
         logger.info(
           `    ${chalk.gray('Total:')} ${chalk.white(tokenUsage.assertions.total.toLocaleString())}`,
         );
-        logger.info(
-          `    ${chalk.gray('Prompt:')} ${chalk.white(tokenUsage.assertions.prompt.toLocaleString())}`,
-        );
-        logger.info(
-          `    ${chalk.gray('Completion:')} ${chalk.white(tokenUsage.assertions.completion.toLocaleString())}`,
-        );
-        if (tokenUsage.assertions.cached > 0) {
+        if (tokenUsage.assertions.prompt) {
+          logger.info(
+            `    ${chalk.gray('Prompt:')} ${chalk.white(tokenUsage.assertions.prompt.toLocaleString())}`,
+          );
+        }
+        if (tokenUsage.assertions.completion) {
+          logger.info(
+            `    ${chalk.gray('Completion:')} ${chalk.white(tokenUsage.assertions.completion.toLocaleString())}`,
+          );
+        }
+        if (tokenUsage.assertions.cached && tokenUsage.assertions.cached > 0) {
           logger.info(
             `    ${chalk.gray('Cached:')} ${chalk.green(tokenUsage.assertions.cached.toLocaleString())}`,
           );
         }
-        if (tokenUsage.assertions.completionDetails?.reasoning > 0) {
+        if (
+          tokenUsage.assertions.completionDetails?.reasoning &&
+          tokenUsage.assertions.completionDetails.reasoning > 0
+        ) {
           logger.info(
             `    ${chalk.gray('Reasoning:')} ${chalk.white(tokenUsage.assertions.completionDetails.reasoning.toLocaleString())}`,
           );
@@ -753,21 +749,10 @@ export function evalCommand(
     // Execution control
     .option(
       '-j, --max-concurrency <number>',
-      'Maximum number of concurrent API calls',
-      defaultConfig.evaluateOptions?.maxConcurrency
-        ? String(defaultConfig.evaluateOptions.maxConcurrency)
-        : `${DEFAULT_MAX_CONCURRENCY}`,
+      `Maximum number of concurrent API calls (default: ${DEFAULT_MAX_CONCURRENCY})`,
     )
-    .option(
-      '--repeat <number>',
-      'Number of times to run each test',
-      defaultConfig.evaluateOptions?.repeat ? String(defaultConfig.evaluateOptions.repeat) : '1',
-    )
-    .option(
-      '--delay <number>',
-      'Delay between each test (in milliseconds)',
-      defaultConfig.evaluateOptions?.delay ? String(defaultConfig.evaluateOptions.delay) : '0',
-    )
+    .option('--repeat <number>', 'Number of times to run each test (default: 1)')
+    .option('--delay <number>', 'Delay between each test (in milliseconds) (default: 0)')
     .option(
       '--no-cache',
       'Do not read or write results to disk cache',
@@ -812,6 +797,7 @@ export function evalCommand(
       '250',
     )
     .option('--share', 'Create a shareable URL', defaultConfig?.commandLineOptions?.share)
+    .option('--no-share', 'Do not share, this overrides the config file')
     .option(
       '--no-write',
       'Do not write results to promptfoo directory',
@@ -886,7 +872,6 @@ export function evalCommand(
           `Unsupported output file format: ${maybeFilePath}. Please use one of: ${OutputFileExtension.options.join(', ')}.`,
         );
       }
-
       doEval(
         validatedOpts as Partial<CommandLineOptions & Command>,
         defaultConfig,

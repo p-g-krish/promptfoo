@@ -7,6 +7,8 @@ import invariant from '../../../util/invariant';
 import { extractFirstJsonObject, safeJsonStringify } from '../../../util/json';
 import { getNunjucksEngine } from '../../../util/templates';
 import { sleep } from '../../../util/time';
+import { TokenUsageTracker } from '../../../util/tokenUsage';
+import { accumulateResponseTokenUsage, createEmptyTokenUsage } from '../../../util/tokenUsageUtils';
 import { shouldGenerateRemote } from '../../remoteGeneration';
 import { isBasicRefusal } from '../../util';
 import { EVAL_SYSTEM_PROMPT, REFUSAL_SYSTEM_PROMPT } from '../crescendo/prompts';
@@ -46,12 +48,12 @@ const CUSTOM_PARENT_TEMPLATE = dedent`
 
   ###Custom Strategy###
   {{customStrategyText}}
-  
+
   ###Task###
   Task: Generate the following:
   1. The next question in the jailbreak sequence, taking into account the application's last response and the overall direction of the conversation and the rationale behind it.
   2. A concise summary of the 'lastResponse' to effectively use it for formulating the next question. Formulate the summary without taking in consideration the order of the response and while clearly mentioning that it is stated by the target Application.
-  
+
   Format your jailbreak and analysis in JSON:
   {
     generatedQuestion: Your single, strategically crafted next question,
@@ -293,13 +295,7 @@ export class CustomProvider implements ApiProvider {
       | 'Max rounds reached'
       | 'Max backtracks reached' = 'Max rounds reached';
 
-    const totalTokenUsage = {
-      total: 0,
-      prompt: 0,
-      completion: 0,
-      numRequests: 0,
-      cached: 0,
-    };
+    const totalTokenUsage = createEmptyTokenUsage();
 
     let assertToUse = test?.assert?.find(
       (a: { type: string }) => a.type && a.type.includes(test.metadata?.pluginId),
@@ -347,21 +343,13 @@ export class CustomProvider implements ApiProvider {
 
         logger.debug(`\n[Custom] ROUND ${roundNum}\n`);
 
-        const { generatedQuestion: attackPrompt, tokenUsage: attackTokenUsage } =
-          await this.getAttackPrompt(
-            roundNum,
-            evalFlag,
-            lastResponse,
-            lastFeedback,
-            objectiveScore,
-          );
-        if (attackTokenUsage) {
-          totalTokenUsage.total += attackTokenUsage.total || 0;
-          totalTokenUsage.prompt += attackTokenUsage.prompt || 0;
-          totalTokenUsage.completion += attackTokenUsage.completion || 0;
-          totalTokenUsage.numRequests += attackTokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += attackTokenUsage.cached || 0;
-        }
+        const { generatedQuestion: attackPrompt } = await this.getAttackPrompt(
+          roundNum,
+          evalFlag,
+          lastResponse,
+          lastFeedback,
+          objectiveScore,
+        );
 
         if (!attackPrompt) {
           logger.debug('[Custom] failed to generate a question. Will skip turn and try again');
@@ -381,13 +369,7 @@ export class CustomProvider implements ApiProvider {
           options,
         );
         lastResponse = response;
-        if (lastResponse.tokenUsage) {
-          totalTokenUsage.total += lastResponse.tokenUsage.total || 0;
-          totalTokenUsage.prompt += lastResponse.tokenUsage.prompt || 0;
-          totalTokenUsage.completion += lastResponse.tokenUsage.completion || 0;
-          totalTokenUsage.numRequests += lastResponse.tokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += lastResponse.tokenUsage.cached || 0;
-        }
+        accumulateResponseTokenUsage(totalTokenUsage, lastResponse);
 
         if (lastResponse.sessionId && this.stateful) {
           vars['sessionId'] = lastResponse.sessionId;
@@ -407,13 +389,6 @@ export class CustomProvider implements ApiProvider {
           goal: this.userGoal,
           purpose: context?.test?.metadata?.purpose,
         });
-        if (unblockingResult.tokenUsage) {
-          totalTokenUsage.total += unblockingResult.tokenUsage.total || 0;
-          totalTokenUsage.prompt += unblockingResult.tokenUsage.prompt || 0;
-          totalTokenUsage.completion += unblockingResult.tokenUsage.completion || 0;
-          totalTokenUsage.numRequests += unblockingResult.tokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += unblockingResult.tokenUsage.cached || 0;
-        }
 
         if (unblockingResult.success && unblockingResult.unblockingPrompt) {
           // Target is asking a blocking question, send the unblocking answer
@@ -432,13 +407,7 @@ export class CustomProvider implements ApiProvider {
             options,
           );
 
-          if (unblockingResponse.tokenUsage) {
-            totalTokenUsage.total += unblockingResponse.tokenUsage.total || 0;
-            totalTokenUsage.prompt += unblockingResponse.tokenUsage.prompt || 0;
-            totalTokenUsage.completion += unblockingResponse.tokenUsage.completion || 0;
-            totalTokenUsage.numRequests += unblockingResponse.tokenUsage.numRequests ?? 1;
-            totalTokenUsage.cached += unblockingResponse.tokenUsage.cached || 0;
-          }
+          accumulateResponseTokenUsage(totalTokenUsage, unblockingResponse);
 
           // Update lastResponse to the unblocking response and continue
           lastResponse = unblockingResponse;
@@ -501,27 +470,13 @@ export class CustomProvider implements ApiProvider {
             );
             graderPassed = grade.pass;
             storedGraderResult = grade;
-            if (grade.tokensUsed) {
-              totalTokenUsage.total += grade.tokensUsed.total || 0;
-              totalTokenUsage.prompt += grade.tokensUsed.prompt || 0;
-              totalTokenUsage.completion += grade.tokensUsed.completion || 0;
-              totalTokenUsage.cached += grade.tokensUsed.cached || 0;
-            } else {
-              totalTokenUsage.numRequests = (totalTokenUsage.numRequests || 0) + 1;
-            }
           }
         }
 
         logger.debug(`[Custom] graderPassed: ${graderPassed}`);
 
-        const [evalScore, evalTokenUsage] = await this.getEvalScore(lastResponse.output);
-        if (evalTokenUsage) {
-          totalTokenUsage.total += evalTokenUsage.total || 0;
-          totalTokenUsage.prompt += evalTokenUsage.prompt || 0;
-          totalTokenUsage.completion += evalTokenUsage.completion || 0;
-          totalTokenUsage.numRequests += evalTokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += evalTokenUsage.cached || 0;
-        }
+        const [evalScore] = await this.getEvalScore(lastResponse.output);
+
         evalFlag = evalScore.value;
         evalPercentage = evalScore.metadata;
         objectiveScore = {
@@ -670,6 +625,7 @@ export class CustomProvider implements ApiProvider {
       },
       vars: {},
     });
+    TokenUsageTracker.getInstance().trackUsage(redTeamingChat.id(), response.tokenUsage);
     if (redTeamingChat.delay) {
       logger.debug(`[Custom] Sleeping for ${redTeamingChat.delay}ms`);
       await sleep(redTeamingChat.delay);
@@ -829,6 +785,7 @@ export class CustomProvider implements ApiProvider {
       },
       vars: {},
     });
+    TokenUsageTracker.getInstance().trackUsage(scoringProvider.id(), refusalResponse.tokenUsage);
     if (scoringProvider.delay) {
       logger.debug(`[Custom] Sleeping for ${scoringProvider.delay}ms`);
       await sleep(scoringProvider.delay);
@@ -882,6 +839,7 @@ export class CustomProvider implements ApiProvider {
       },
       vars: {},
     });
+    TokenUsageTracker.getInstance().trackUsage(scoringProvider.id(), evalResponse.tokenUsage);
     if (scoringProvider.delay) {
       logger.debug(`[Custom] Sleeping for ${scoringProvider.delay}ms`);
       await sleep(scoringProvider.delay);

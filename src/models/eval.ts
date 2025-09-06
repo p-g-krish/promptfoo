@@ -18,6 +18,8 @@ import { getEnvBool } from '../envars';
 import { getUserEmail } from '../globalConfig/accounts';
 import logger from '../logger';
 import { hashPrompt } from '../prompts/utils';
+import { PLUGIN_CATEGORIES } from '../redteam/constants';
+import { getRiskCategorySeverityMap } from '../redteam/sharedFrontend';
 import {
   type CompletedPrompt,
   type EvalSummary,
@@ -37,7 +39,9 @@ import { randomSequence, sha256 } from '../util/createHash';
 import { convertTestResultsToTableRow } from '../util/exportToFile';
 import invariant from '../util/invariant';
 import { getCurrentTimestamp } from '../util/time';
+import { accumulateTokenUsage, createEmptyTokenUsage } from '../util/tokenUsageUtils';
 import EvalResult from './evalResult';
+import { getCachedResultsCount, queryTestIndicesOptimized } from './evalPerformance';
 
 interface FilteredCountRow {
   count: number | null;
@@ -407,14 +411,8 @@ export default class Eval {
   }
 
   async getResultsCount(): Promise<number> {
-    const db = getDb();
-    const result = db
-      .select({ count: sql<number>`count(*)` })
-      .from(evalResultsTable)
-      .where(eq(evalResultsTable.evalId, this.id))
-      .all();
-    const count = result[0]?.count ?? 0;
-    return Number(count);
+    // Use cached count for better performance
+    return getCachedResultsCount(this.id);
   }
 
   async fetchResultsByTestIdx(testIdx: number) {
@@ -449,18 +447,21 @@ export default class Eval {
     // Add filters
     if (opts.filters && opts.filters.length > 0) {
       const filterConditions: string[] = [];
+      // Helper function to sanitize SQL string values
+      const sanitizeValue = (val: string) => val.replace(/'/g, "''");
+
       opts.filters.forEach((filter) => {
         const { logicOperator, type, operator, value, field } = JSON.parse(filter);
         let condition: string | null = null;
 
         if (type === 'metric' && operator === 'equals') {
-          const sanitizedValue = value.replace(/'/g, "''");
+          const sanitizedValue = sanitizeValue(value);
           // Because sanitized values can contain dots (e.g. `gpt-4.1-judge`) we need to wrap the sanitized value
           // in double quotes.
           condition = `json_extract(named_scores, '$."${sanitizedValue}"') IS NOT NULL`;
         } else if (type === 'metadata' && field) {
-          const sanitizedValue = value.replace(/'/g, "''");
-          const sanitizedField = field.replace(/'/g, "''");
+          const sanitizedValue = sanitizeValue(value);
+          const sanitizedField = sanitizeValue(field);
 
           if (operator === 'equals') {
             condition = `json_extract(metadata, '$."${sanitizedField}"') = '${sanitizedValue}'`;
@@ -469,12 +470,58 @@ export default class Eval {
           } else if (operator === 'not_contains') {
             condition = `(json_extract(metadata, '$."${sanitizedField}"') IS NULL OR json_extract(metadata, '$."${sanitizedField}"') NOT LIKE '%${sanitizedValue}%')`;
           }
+        } else if (type === 'plugin' && operator === 'equals') {
+          const sanitizedValue = sanitizeValue(value);
+          // Is the value a category? e.g. `harmful` or `bias`
+          const isCategory = Object.keys(PLUGIN_CATEGORIES).includes(sanitizedValue);
+          const pluginIdPath = "json_extract(metadata, '$.pluginId')";
+
+          // Plugin ID is stored in metadata.pluginId
+          if (isCategory) {
+            condition = `${pluginIdPath} LIKE '${sanitizedValue}:%'`;
+          } else {
+            condition = `${pluginIdPath} = '${sanitizedValue}'`;
+          }
+        } else if (type === 'strategy' && operator === 'equals') {
+          const sanitizedValue = sanitizeValue(value);
+          if (sanitizedValue === 'basic') {
+            // Basic is represented by NULL in the metadata.strategyId field
+            condition = `(json_extract(metadata, '$.strategyId') IS NULL OR json_extract(metadata, '$.strategyId') = '')`;
+          } else {
+            // Strategy ID is stored in metadata.strategyId
+            condition = `json_extract(metadata, '$.strategyId') = '${sanitizedValue}'`;
+          }
+        } else if (type === 'severity' && operator === 'equals') {
+          const sanitizedValue = sanitizeValue(value);
+          // Get the severity map for all plugins
+          const severityMap = getRiskCategorySeverityMap(this.config?.redteam?.plugins);
+
+          // Find all plugin IDs that match the requested severity
+          const matchingPluginIds = Object.entries(severityMap)
+            .filter(([, severity]) => severity === sanitizedValue)
+            .map(([pluginId]) => pluginId);
+
+          if (matchingPluginIds.length > 0) {
+            const pluginIdPath = "json_extract(metadata, '$.pluginId')";
+            // Build SQL condition to check if pluginId matches any of the plugins with this severity
+            const pluginConditions = matchingPluginIds.map((pluginId) => {
+              const sanitizedPluginId = sanitizeValue(pluginId);
+              // Check for exact match or category match (e.g., 'harmful:*')
+              if (pluginId.includes(':')) {
+                // It's a specific subcategory
+                return `${pluginIdPath} = '${sanitizedPluginId}'`;
+              } else {
+                // It's a category, match any plugin starting with this prefix
+                return `${pluginIdPath} LIKE '${sanitizedPluginId}:%'`;
+              }
+            });
+            condition = `(${pluginConditions.join(' OR ')})`;
+          }
         }
 
         if (condition) {
-          // Logic operator can only be applied if there are already conditions
+          // Apply logic operator if there are already existing filter conditions
           filterConditions.push(
-            // Logic operator can only be applied if there are already conditions
             filterConditions.length > 0 ? `${logicOperator} ${condition}` : condition,
           );
         }
@@ -559,14 +606,31 @@ export default class Eval {
       testIndices = opts.testIndices;
       filteredCount = testIndices.length;
     } else {
-      // Query for test indices based on filters
-      const queryResult = await this.queryTestIndices({
-        offset: opts.offset,
-        limit: opts.limit,
-        filterMode: opts.filterMode,
-        searchQuery: opts.searchQuery,
-        filters: opts.filters,
-      });
+      // Use optimized query for simple cases, fall back to original for complex filters
+      const hasComplexFilters = opts.filters && opts.filters.length > 0;
+
+      let queryResult;
+      if (hasComplexFilters) {
+        // Fall back to original query for complex filters
+        logger.debug('Using original query for complex filters');
+        queryResult = await this.queryTestIndices({
+          offset: opts.offset,
+          limit: opts.limit,
+          filterMode: opts.filterMode,
+          searchQuery: opts.searchQuery,
+          filters: opts.filters,
+        });
+      } else {
+        // Use optimized query for better performance
+        logger.debug('Using optimized query for table page');
+        queryResult = await queryTestIndicesOptimized(this.id, {
+          offset: opts.offset,
+          limit: opts.limit,
+          filterMode: opts.filterMode,
+          searchQuery: opts.searchQuery,
+          filters: opts.filters,
+        });
+      }
 
       testIndices = queryResult.testIndices;
       filteredCount = queryResult.filteredCount;
@@ -663,67 +727,15 @@ export default class Eval {
       successes: 0,
       failures: 0,
       errors: 0,
-      tokenUsage: {
-        cached: 0,
-        completion: 0,
-        prompt: 0,
-        total: 0,
-        numRequests: 0,
-        completionDetails: {
-          reasoning: 0,
-          acceptedPrediction: 0,
-          rejectedPrediction: 0,
-        },
-        assertions: {
-          total: 0,
-          prompt: 0,
-          completion: 0,
-          cached: 0,
-        },
-      },
+      tokenUsage: createEmptyTokenUsage(),
     };
 
     for (const prompt of this.prompts) {
-      stats.successes += prompt.metrics?.testPassCount || 0;
-      stats.failures += prompt.metrics?.testFailCount || 0;
-      stats.errors += prompt.metrics?.testErrorCount || 0;
-      stats.tokenUsage.prompt += prompt.metrics?.tokenUsage.prompt || 0;
-      stats.tokenUsage.cached += prompt.metrics?.tokenUsage.cached || 0;
-      stats.tokenUsage.completion += prompt.metrics?.tokenUsage.completion || 0;
-      stats.tokenUsage.total += prompt.metrics?.tokenUsage.total || 0;
-      stats.tokenUsage.numRequests += prompt.metrics?.tokenUsage.numRequests || 0;
+      stats.successes += prompt.metrics?.testPassCount ?? 0;
+      stats.failures += prompt.metrics?.testFailCount ?? 0;
+      stats.errors += prompt.metrics?.testErrorCount ?? 0;
 
-      if (prompt.metrics?.tokenUsage.completionDetails && stats.tokenUsage.completionDetails) {
-        if (stats.tokenUsage.completionDetails.reasoning !== undefined) {
-          stats.tokenUsage.completionDetails.reasoning +=
-            prompt.metrics?.tokenUsage.completionDetails?.reasoning || 0;
-        }
-        if (stats.tokenUsage.completionDetails.acceptedPrediction !== undefined) {
-          stats.tokenUsage.completionDetails.acceptedPrediction +=
-            prompt.metrics?.tokenUsage.completionDetails?.acceptedPrediction || 0;
-        }
-        if (stats.tokenUsage.completionDetails.rejectedPrediction !== undefined) {
-          stats.tokenUsage.completionDetails.rejectedPrediction +=
-            prompt.metrics?.tokenUsage.completionDetails?.rejectedPrediction || 0;
-        }
-      }
-
-      // Add assertion token usage from prompt metrics
-      if (prompt.metrics?.tokenUsage.assertions && stats.tokenUsage.assertions) {
-        if (stats.tokenUsage.assertions.total !== undefined) {
-          stats.tokenUsage.assertions.total += prompt.metrics.tokenUsage.assertions.total || 0;
-        }
-        if (stats.tokenUsage.assertions.prompt !== undefined) {
-          stats.tokenUsage.assertions.prompt += prompt.metrics.tokenUsage.assertions.prompt || 0;
-        }
-        if (stats.tokenUsage.assertions.completion !== undefined) {
-          stats.tokenUsage.assertions.completion +=
-            prompt.metrics.tokenUsage.assertions.completion || 0;
-        }
-        if (stats.tokenUsage.assertions.cached !== undefined) {
-          stats.tokenUsage.assertions.cached += prompt.metrics.tokenUsage.assertions.cached || 0;
-        }
-      }
+      accumulateTokenUsage(stats.tokenUsage, prompt.metrics?.tokenUsage);
     }
 
     return stats;

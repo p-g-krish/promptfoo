@@ -1,12 +1,12 @@
 import { jest } from '@jest/globals';
+
 import RedteamIterativeProvider, {
   runRedteamConversation,
 } from '../../../src/redteam/providers/iterative';
-
 import type { ApiProvider, AtomicTestCase, ProviderResponse } from '../../../src/types';
 
-const mockGetProvider = jest.fn<() => Promise<ApiProvider>>();
-const mockGetTargetResponse = jest.fn<() => Promise<ProviderResponse>>();
+const mockGetProvider = jest.fn<() => Promise<any>>();
+const mockGetTargetResponse = jest.fn<() => Promise<any>>();
 const mockCheckPenalizedPhrases = jest.fn<() => boolean>();
 const mockGetGraderById = jest.fn();
 
@@ -66,7 +66,7 @@ describe('RedteamIterativeProvider', () => {
     } as jest.Mocked<ApiProvider>;
 
     mockGetProvider.mockImplementation(() => Promise.resolve(mockRedteamProvider));
-    mockGetTargetResponse.mockImplementation(() =>
+    mockGetTargetResponse.mockImplementation(async () =>
       Promise.resolve({
         output: 'mock target response',
       }),
@@ -136,6 +136,7 @@ describe('RedteamIterativeProvider', () => {
         redteamProvider: mockRedteamProvider,
         gradingProvider: mockRedteamProvider,
         targetProvider: mockTargetProvider,
+        test: undefined,
         vars: { test: 'goal' },
         excludeTargetOutputFromAgenticAttackGeneration: false,
       });
@@ -212,7 +213,11 @@ describe('RedteamIterativeProvider', () => {
       expect(mockGrader.getResult).toHaveBeenCalledWith(
         'test',
         'mock target response',
-        test,
+        expect.objectContaining({
+          vars: { test: 'goal' },
+          assert: [{ type: 'promptfoo:redteam:test-plugin' }],
+          metadata: { pluginId: 'test-plugin', goal: 'test goal' },
+        }),
         mockRedteamProvider,
         undefined,
         expect.stringContaining('iterative jailbreak attack with the following goal: "test goal"'),
@@ -407,7 +412,14 @@ describe('RedteamIterativeProvider', () => {
       expect(mockGrader.getResult).toHaveBeenCalledWith(
         'test',
         'mock target response',
-        test,
+        expect.objectContaining({
+          vars: { test: 'goal' },
+          assert: [{ type: 'promptfoo:redteam:test-plugin' }],
+          metadata: {
+            pluginId: 'test-plugin',
+            goal: 'Create harmful content about specific groups',
+          },
+        }),
         mockRedteamProvider,
         undefined,
         expect.stringContaining('Create harmful content about specific groups'),
@@ -479,7 +491,11 @@ describe('RedteamIterativeProvider', () => {
       expect(mockGrader.getResult).toHaveBeenCalledWith(
         'test',
         'mock target response',
-        test,
+        expect.objectContaining({
+          vars: { someOtherVar: 'just a test value' },
+          assert: [{ type: 'promptfoo:redteam:test-plugin' }],
+          metadata: { pluginId: 'test-plugin' },
+        }),
         mockRedteamProvider,
         undefined,
         '', // Empty additional rubric when no goal
@@ -549,6 +565,306 @@ describe('RedteamIterativeProvider', () => {
         score: 0,
         reason: 'Grader detected jailbreak',
       });
+    });
+
+    it('should re-run transformVars for each iteration', async () => {
+      const mockTest: AtomicTestCase = {
+        vars: { originalVar: 'value' },
+        options: {
+          transformVars: '{ ...vars, sessionId: context.uuid }',
+        },
+      };
+
+      // Track the prompts sent to the target provider
+      const targetPrompts: string[] = [];
+      mockTargetProvider.callApi.mockImplementation(async (prompt: string) => {
+        targetPrompts.push(prompt);
+        return { output: 'mock target response' };
+      });
+
+      // Mock provider responses for 3 iterations
+      mockRedteamProvider.callApi
+        // First iteration
+        .mockResolvedValueOnce({
+          output: JSON.stringify({ improvement: 'test1', prompt: 'test1' }),
+        })
+        .mockResolvedValueOnce({
+          output: JSON.stringify({ onTopic: true }),
+        })
+        .mockResolvedValueOnce({
+          output: JSON.stringify({
+            currentResponse: { rating: 3, explanation: 'test' },
+            previousBestResponse: { rating: 0, explanation: 'none' },
+          }),
+        })
+        // Second iteration
+        .mockResolvedValueOnce({
+          output: JSON.stringify({ improvement: 'test2', prompt: 'test2' }),
+        })
+        .mockResolvedValueOnce({
+          output: JSON.stringify({ onTopic: true }),
+        })
+        .mockResolvedValueOnce({
+          output: JSON.stringify({
+            currentResponse: { rating: 5, explanation: 'test' },
+            previousBestResponse: { rating: 3, explanation: 'test' },
+          }),
+        })
+        // Third iteration
+        .mockResolvedValueOnce({
+          output: JSON.stringify({ improvement: 'test3', prompt: 'test3' }),
+        })
+        .mockResolvedValueOnce({
+          output: JSON.stringify({ onTopic: true }),
+        })
+        .mockResolvedValueOnce({
+          output: JSON.stringify({
+            currentResponse: { rating: 7, explanation: 'test' },
+            previousBestResponse: { rating: 5, explanation: 'test' },
+          }),
+        });
+
+      const result = await runRedteamConversation({
+        context: {
+          prompt: { raw: 'Session {{sessionId}} - {{test}}', label: '' },
+          vars: { originalVar: 'value' },
+        },
+        filters: undefined,
+        injectVar: 'test',
+        numIterations: 3,
+        options: {},
+        prompt: { raw: 'Session {{sessionId}} - {{test}}', label: 'test' },
+        redteamProvider: mockRedteamProvider,
+        gradingProvider: mockRedteamProvider,
+        targetProvider: mockTargetProvider,
+        test: mockTest,
+        vars: { test: 'goal', originalVar: 'value' },
+        excludeTargetOutputFromAgenticAttackGeneration: false,
+      });
+
+      // Verify that we completed 3 iterations
+      expect(result.metadata.redteamHistory).toHaveLength(3);
+
+      // Verify targetProvider was called 3 times
+      expect(mockTargetProvider.callApi).toHaveBeenCalledTimes(3);
+      expect(targetPrompts).toHaveLength(3);
+
+      // Extract sessionIds from the prompts using regex
+      const sessionIdRegex = /Session ([a-f0-9-]+) - test[123]/;
+      const sessionIds = targetPrompts.map((prompt) => {
+        const match = prompt.match(sessionIdRegex);
+        return match ? match[1] : null;
+      });
+
+      // Verify that each iteration had a different sessionId
+      expect(sessionIds[0]).toBeTruthy();
+      expect(sessionIds[1]).toBeTruthy();
+      expect(sessionIds[2]).toBeTruthy();
+
+      // All sessionIds should be different (UUIDs)
+      expect(sessionIds[0]).not.toBe(sessionIds[1]);
+      expect(sessionIds[1]).not.toBe(sessionIds[2]);
+      expect(sessionIds[0]).not.toBe(sessionIds[2]);
+    });
+  });
+
+  describe('Token Counting', () => {
+    beforeEach(() => {
+      // Reset TokenUsageTracker between tests to ensure clean state
+      const { TokenUsageTracker } = require('../../../src/util/tokenUsage');
+      TokenUsageTracker.getInstance().resetAllUsage();
+    });
+
+    it('should correctly track token usage when target provider returns tokens', async () => {
+      // Reset the mock to use the real getTargetResponse function
+      mockGetTargetResponse.mockRestore?.();
+
+      // Mock the target provider directly to return tokens
+      mockTargetProvider.callApi.mockResolvedValueOnce({
+        output: 'target response',
+        tokenUsage: { total: 100, prompt: 60, completion: 40, numRequests: 1 },
+        cached: false,
+      });
+
+      const result = await runRedteamConversation({
+        context: { prompt: { raw: '', label: '' }, vars: {} },
+        filters: undefined,
+        injectVar: 'test',
+        numIterations: 1,
+        options: {},
+        prompt: { raw: 'test {{test}}', label: 'test' },
+        redteamProvider: mockRedteamProvider,
+        gradingProvider: mockRedteamProvider,
+        targetProvider: mockTargetProvider,
+        vars: { test: 'goal' },
+        excludeTargetOutputFromAgenticAttackGeneration: false,
+      });
+
+      // Verify that target token usage is accumulated
+      expect(result.tokenUsage.total).toBe(100);
+      expect(result.tokenUsage.prompt).toBe(60);
+      expect(result.tokenUsage.completion).toBe(40);
+      expect(result.tokenUsage.numRequests).toBe(1);
+    });
+
+    it('should accumulate token usage across multiple iterations', async () => {
+      mockGetTargetResponse.mockRestore?.();
+
+      // Mock target provider for multiple calls with different token usage
+      mockTargetProvider.callApi
+        .mockResolvedValueOnce({
+          output: 'response 1',
+          tokenUsage: { total: 100, prompt: 60, completion: 40, numRequests: 1 },
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          output: 'response 2',
+          tokenUsage: { total: 150, prompt: 90, completion: 60, numRequests: 1 },
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          output: 'response 3',
+          tokenUsage: { total: 200, prompt: 120, completion: 80, numRequests: 1 },
+          cached: false,
+        });
+
+      const result = await runRedteamConversation({
+        context: { prompt: { raw: '', label: '' }, vars: {} },
+        filters: undefined,
+        injectVar: 'test',
+        numIterations: 3,
+        options: {},
+        prompt: { raw: 'test {{test}}', label: 'test' },
+        redteamProvider: mockRedteamProvider,
+        gradingProvider: mockRedteamProvider,
+        targetProvider: mockTargetProvider,
+        vars: { test: 'goal' },
+        excludeTargetOutputFromAgenticAttackGeneration: false,
+      });
+
+      // Verify accumulated token usage from all target calls
+      expect(result.tokenUsage.total).toBe(450); // 100 + 150 + 200
+      expect(result.tokenUsage.prompt).toBe(270); // 60 + 90 + 120
+      expect(result.tokenUsage.completion).toBe(180); // 40 + 60 + 80
+      expect(result.tokenUsage.numRequests).toBe(3);
+    });
+
+    it('should handle missing token usage from target responses', async () => {
+      mockGetTargetResponse.mockRestore?.();
+
+      mockTargetProvider.callApi
+        .mockResolvedValueOnce({
+          output: 'response with tokens',
+          tokenUsage: { total: 100, prompt: 60, completion: 40, numRequests: 1 },
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          output: 'response without tokens',
+          // No tokenUsage provided
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          output: 'another response with tokens',
+          tokenUsage: { total: 200, prompt: 120, completion: 80 }, // numRequests missing
+          cached: false,
+        });
+
+      const result = await runRedteamConversation({
+        context: { prompt: { raw: '', label: '' }, vars: {} },
+        filters: undefined,
+        injectVar: 'test',
+        numIterations: 3,
+        options: {},
+        prompt: { raw: 'test {{test}}', label: 'test' },
+        redteamProvider: mockRedteamProvider,
+        gradingProvider: mockRedteamProvider,
+        targetProvider: mockTargetProvider,
+        vars: { test: 'goal' },
+        excludeTargetOutputFromAgenticAttackGeneration: false,
+      });
+
+      // Token usage should accumulate correctly even with missing data
+      // getTargetResponse adds numRequests: 1 automatically, so: 100 + 0 + 200 = 300
+      expect(result.tokenUsage.total).toBe(300);
+      expect(result.tokenUsage.prompt).toBe(180); // 60 + 0 + 120
+      expect(result.tokenUsage.completion).toBe(120); // 40 + 0 + 80
+      expect(result.tokenUsage.numRequests).toBe(3); // All calls counted
+    });
+
+    it('should handle error responses without affecting token counts', async () => {
+      mockGetTargetResponse.mockRestore?.();
+
+      mockTargetProvider.callApi
+        .mockResolvedValueOnce({
+          output: 'successful response',
+          tokenUsage: { total: 100, prompt: 60, completion: 40, numRequests: 1 },
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          error: 'Target provider failed',
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          output: 'another successful response',
+          tokenUsage: { total: 150, prompt: 90, completion: 60, numRequests: 1 },
+          cached: false,
+        });
+
+      const result = await runRedteamConversation({
+        context: { prompt: { raw: '', label: '' }, vars: {} },
+        filters: undefined,
+        injectVar: 'test',
+        numIterations: 3,
+        options: {},
+        prompt: { raw: 'test {{test}}', label: 'test' },
+        redteamProvider: mockRedteamProvider,
+        gradingProvider: mockRedteamProvider,
+        targetProvider: mockTargetProvider,
+        vars: { test: 'goal' },
+        excludeTargetOutputFromAgenticAttackGeneration: false,
+      });
+
+      // Only successful calls should contribute to token usage
+      expect(result.tokenUsage.total).toBe(250); // 100 + 150
+      expect(result.tokenUsage.prompt).toBe(150); // 60 + 90
+      expect(result.tokenUsage.completion).toBe(100); // 40 + 60
+      expect(result.tokenUsage.numRequests).toBe(3); // All calls are counted, including errors
+    });
+
+    it('should handle zero token counts correctly', async () => {
+      mockGetTargetResponse.mockRestore?.();
+
+      mockTargetProvider.callApi
+        .mockResolvedValueOnce({
+          output: 'response with zero tokens',
+          tokenUsage: { total: 0, prompt: 0, completion: 0, numRequests: 1 },
+          cached: false,
+        })
+        .mockResolvedValueOnce({
+          output: 'response with normal tokens',
+          tokenUsage: { total: 100, prompt: 60, completion: 40, numRequests: 1 },
+          cached: false,
+        });
+
+      const result = await runRedteamConversation({
+        context: { prompt: { raw: '', label: '' }, vars: {} },
+        filters: undefined,
+        injectVar: 'test',
+        numIterations: 2,
+        options: {},
+        prompt: { raw: 'test {{test}}', label: 'test' },
+        redteamProvider: mockRedteamProvider,
+        gradingProvider: mockRedteamProvider,
+        targetProvider: mockTargetProvider,
+        vars: { test: 'goal' },
+        excludeTargetOutputFromAgenticAttackGeneration: false,
+      });
+
+      // Should handle zero counts correctly: 0 + 100 = 100
+      expect(result.tokenUsage.total).toBe(100);
+      expect(result.tokenUsage.prompt).toBe(60);
+      expect(result.tokenUsage.completion).toBe(40);
+      expect(result.tokenUsage.numRequests).toBe(2);
     });
   });
 });

@@ -8,6 +8,7 @@ import invariant from '../../util/invariant';
 import { safeJsonStringify } from '../../util/json';
 import { getNunjucksEngine } from '../../util/templates';
 import { sleep } from '../../util/time';
+import { accumulateResponseTokenUsage, createEmptyTokenUsage } from '../../util/tokenUsageUtils';
 import { getRemoteGenerationUrl, neverGenerateRemote } from '../remoteGeneration';
 import { getGoalRubric } from './prompts';
 import { getLastMessageContent, messagesToRedteamHistory, tryUnblocking } from './shared';
@@ -19,6 +20,7 @@ import type {
   CallApiOptionsParams,
   ProviderOptions,
   ProviderResponse,
+  TokenUsage,
 } from '../../types/providers';
 import type { BaseRedteamMetadata } from '../types';
 import type { Message } from './shared';
@@ -120,13 +122,7 @@ export default class GoatProvider implements ApiProvider {
     invariant(targetProvider, 'Expected originalProvider to be set');
 
     const messages: Message[] = [];
-    const totalTokenUsage = {
-      total: 0,
-      prompt: 0,
-      completion: 0,
-      numRequests: 0,
-      cached: 0,
-    };
+    const totalTokenUsage: TokenUsage = createEmptyTokenUsage();
 
     let lastTargetResponse: ProviderResponse | undefined = undefined;
 
@@ -166,14 +162,6 @@ export default class GoatProvider implements ApiProvider {
             purpose: context?.test?.metadata?.purpose,
           });
 
-          if (unblockingResult.tokenUsage) {
-            totalTokenUsage.total += unblockingResult.tokenUsage.total || 0;
-            totalTokenUsage.prompt += unblockingResult.tokenUsage.prompt || 0;
-            totalTokenUsage.completion += unblockingResult.tokenUsage.completion || 0;
-            totalTokenUsage.numRequests += unblockingResult.tokenUsage.numRequests ?? 1;
-            totalTokenUsage.cached += unblockingResult.tokenUsage.cached || 0;
-          }
-
           if (unblockingResult.success && unblockingResult.unblockingPrompt) {
             logger.debug(
               `[GOAT] Sending unblocking response: ${unblockingResult.unblockingPrompt}`,
@@ -196,15 +184,7 @@ export default class GoatProvider implements ApiProvider {
               await sleep(targetProvider.delay);
             }
 
-            if (unblockingResponse.tokenUsage) {
-              totalTokenUsage.total += unblockingResponse.tokenUsage.total || 0;
-              totalTokenUsage.prompt += unblockingResponse.tokenUsage.prompt || 0;
-              totalTokenUsage.completion += unblockingResponse.tokenUsage.completion || 0;
-              totalTokenUsage.numRequests += unblockingResponse.tokenUsage.numRequests ?? 1;
-              totalTokenUsage.cached += unblockingResponse.tokenUsage.cached || 0;
-            } else {
-              totalTokenUsage.numRequests += 1;
-            }
+            accumulateResponseTokenUsage(totalTokenUsage, unblockingResponse);
 
             const unblockingOutput =
               typeof unblockingResponse.output === 'string'
@@ -230,6 +210,7 @@ export default class GoatProvider implements ApiProvider {
             targetOutput: previousTargetOutput,
             attackAttempt: previousAttackerMessage,
             task: 'extract-goat-failure',
+            modifiers: context?.test?.metadata?.modifiers,
           });
           logger.debug(`[GOAT] Sending request to ${getRemoteGenerationUrl()}: ${body}`);
           response = await fetch(getRemoteGenerationUrl(), {
@@ -263,6 +244,7 @@ export default class GoatProvider implements ApiProvider {
             this.config.excludeTargetOutputFromAgenticAttackGeneration,
           failureReason,
           purpose: context?.test?.metadata?.purpose,
+          modifiers: context?.test?.metadata?.modifiers,
         });
 
         logger.debug(`[GOAT] Sending request to ${getRemoteGenerationUrl()}: ${body}`);
@@ -299,13 +281,6 @@ export default class GoatProvider implements ApiProvider {
           content: renderedAttackerPrompt,
         });
 
-        if (data.tokenUsage) {
-          totalTokenUsage.total += data.tokenUsage.total || 0;
-          totalTokenUsage.prompt += data.tokenUsage.prompt || 0;
-          totalTokenUsage.completion += data.tokenUsage.completion || 0;
-          totalTokenUsage.numRequests += data.tokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += data.tokenUsage.cached || 0;
-        }
         logger.debug(
           dedent`
           ${chalk.bold.green(`GOAT turn ${turn} history:`)}
@@ -323,6 +298,7 @@ export default class GoatProvider implements ApiProvider {
           logger.debug(`Sleeping for ${targetProvider.delay}ms`);
           await sleep(targetProvider.delay);
         }
+        accumulateResponseTokenUsage(totalTokenUsage, targetResponse);
 
         logger.debug(`GOAT turn ${turn} target response: ${safeJsonStringify(targetResponse)}`);
 
@@ -360,16 +336,6 @@ export default class GoatProvider implements ApiProvider {
         // Store the attack response for potential unblocking in next turn
         previousTargetOutput = stringifiedOutput;
 
-        if (targetResponse.tokenUsage) {
-          totalTokenUsage.total += targetResponse.tokenUsage.total || 0;
-          totalTokenUsage.prompt += targetResponse.tokenUsage.prompt || 0;
-          totalTokenUsage.completion += targetResponse.tokenUsage.completion || 0;
-          totalTokenUsage.numRequests += targetResponse.tokenUsage.numRequests ?? 1;
-          totalTokenUsage.cached += targetResponse.tokenUsage.cached || 0;
-        } else {
-          totalTokenUsage.numRequests += 1;
-        }
-
         lastTargetResponse = finalResponse;
 
         const grader = assertToUse ? getGraderById(assertToUse.type) : undefined;
@@ -384,14 +350,6 @@ export default class GoatProvider implements ApiProvider {
           );
           graderPassed = grade.pass;
           storedGraderResult = grade;
-          if (grade.tokensUsed) {
-            totalTokenUsage.total += grade.tokensUsed.total || 0;
-            totalTokenUsage.prompt += grade.tokensUsed.prompt || 0;
-            totalTokenUsage.completion += grade.tokensUsed.completion || 0;
-            totalTokenUsage.cached += grade.tokensUsed.cached || 0;
-          } else {
-            totalTokenUsage.numRequests = (totalTokenUsage.numRequests || 0) + 1;
-          }
         }
 
         if (graderPassed === false) {

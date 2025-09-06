@@ -2,6 +2,7 @@ import logger from '../logger';
 import invariant from '../util/invariant';
 import { getNunjucksEngine } from '../util/templates';
 import { sleep } from '../util/time';
+import { accumulateResponseTokenUsage, createEmptyTokenUsage } from '../util/tokenUsageUtils';
 import { PromptfooSimulatedUserProvider } from './promptfoo';
 
 import type {
@@ -57,7 +58,7 @@ export class SimulatedUser implements ApiProvider {
   private async sendMessageToUser(
     messages: Message[],
     userProvider: PromptfooSimulatedUserProvider,
-  ): Promise<Message[]> {
+  ): Promise<{ messages: Message[]; tokenUsage?: TokenUsage }> {
     logger.debug('[SimulatedUser] Sending message to simulated user provider');
 
     const flippedMessages = messages.map((message) => {
@@ -69,7 +70,10 @@ export class SimulatedUser implements ApiProvider {
 
     const response = await userProvider.callApi(JSON.stringify(flippedMessages));
     logger.debug(`User: ${response.output}`);
-    return [...messages, { role: 'user', content: String(response.output || '') }];
+    return {
+      messages: [...messages, { role: 'user', content: String(response.output || '') }],
+      tokenUsage: response.tokenUsage,
+    };
   }
 
   private async sendMessageToAgent(
@@ -115,13 +119,7 @@ export class SimulatedUser implements ApiProvider {
     const messages: Message[] = [];
     const maxTurns = this.maxTurns;
 
-    const totalTokenUsage = {
-      total: 0,
-      prompt: 0,
-      completion: 0,
-      numRequests: 0,
-      cached: 0,
-    };
+    const tokenUsage = createEmptyTokenUsage();
 
     let agentResponse: ProviderResponse | undefined;
 
@@ -129,7 +127,7 @@ export class SimulatedUser implements ApiProvider {
       logger.debug(`[SimulatedUser] Turn ${i + 1} of ${maxTurns}`);
 
       // NOTE: Simulated-user provider acts as a judge to determine whether the instruction goal is satisfied.
-      const messagesToUser = await this.sendMessageToUser(messages, userProvider);
+      const { messages: messagesToUser } = await this.sendMessageToUser(messages, userProvider);
       const lastMessage = messagesToUser[messagesToUser.length - 1];
 
       // Check whether the judge has determined that the instruction goal is satisfied.
@@ -151,18 +149,10 @@ export class SimulatedUser implements ApiProvider {
 
       messages.push({ role: 'assistant', content: String(agentResponse.output ?? '') });
 
-      if (agentResponse.tokenUsage) {
-        totalTokenUsage.total += agentResponse.tokenUsage.total ?? 0;
-        totalTokenUsage.prompt += agentResponse.tokenUsage.prompt ?? 0;
-        totalTokenUsage.completion += agentResponse.tokenUsage.completion ?? 0;
-        totalTokenUsage.numRequests += agentResponse.tokenUsage.numRequests ?? 1;
-        totalTokenUsage.cached += agentResponse.tokenUsage.cached ?? 0;
-      } else {
-        totalTokenUsage.numRequests += 1;
-      }
+      accumulateResponseTokenUsage(tokenUsage, agentResponse);
     }
 
-    return this.serializeOutput(messages, totalTokenUsage, agentResponse as ProviderResponse);
+    return this.serializeOutput(messages, tokenUsage, agentResponse as ProviderResponse);
   }
 
   toString() {
